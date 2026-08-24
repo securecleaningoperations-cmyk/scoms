@@ -17,13 +17,13 @@ export function JitsiMeetViewer({ roomName, displayName = 'Guest', email, onMeet
   useEffect(() => {
     // Dynamically load Jitsi External API script
     const script = document.createElement('script');
-    script.src = 'https://meet.jit.si/external_api.js';
+    script.src = 'https://meet.ffmuc.net/external_api.js';
     script.async = true;
     
     script.onload = () => {
       setLoading(false);
       if (window.JitsiMeetExternalAPI && containerRef.current) {
-        const domain = 'meet.jit.si';
+        const domain = 'meet.ffmuc.net';
         const options = {
           roomName: roomName,
           width: '100%',

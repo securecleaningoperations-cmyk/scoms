@@ -21,11 +21,21 @@ export async function POST(req: Request) {
       }
     });
 
+    // Generate a secure temporary password
+    const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*";
+    let temporaryPassword = "";
+    for (let i = 0, n = charset.length; i < 12; ++i) {
+      temporaryPassword += charset.charAt(Math.floor(Math.random() * n));
+    }
+    // Ensure at least one special char, number, upper, lower if needed, but random is usually fine for temp.
+    // Let's just append one of each to be safe and satisfy Supabase password rules
+    temporaryPassword += "1aA!";
+
     // 1. Create auth user
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       email_confirm: true,
-      password: 'TemporaryPassword123!',
+      password: temporaryPassword,
       user_metadata: { first_name, last_name, role }
     });
 
@@ -66,7 +76,13 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: empError.message }, { status: 400 });
     }
 
-    return NextResponse.json({ data: empData });
+    return NextResponse.json({ 
+      data: empData,
+      credentials: {
+        email: email,
+        password: temporaryPassword
+      }
+    });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
