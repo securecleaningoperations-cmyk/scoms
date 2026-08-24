@@ -29,7 +29,7 @@ export default function DashboardPage() {
             const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
             role = data?.role || 'super_admin';
           }
-          setUserRole(role);
+          setUserRole(role.toLowerCase().replace(/\s+/g, '_'));
         }
 
         // Fetch metrics

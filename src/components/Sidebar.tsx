@@ -188,7 +188,10 @@ export function Sidebar() {
           const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
           role = data?.role;
         }
-        if (role) setUserRole(role);
+        if (role) {
+          const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
+          setUserRole(normalizedRole);
+        }
       }
     }
     getRole();
