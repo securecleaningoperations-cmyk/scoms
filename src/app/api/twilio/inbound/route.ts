@@ -15,9 +15,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
 // Service-role Supabase client for server-side inserts
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+const getSupabase = () => createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+  process.env.SUPABASE_SERVICE_ROLE_KEY || ''
 );
 
 const TWILIO_CONFIGURED = !!(
@@ -27,6 +27,7 @@ const TWILIO_CONFIGURED = !!(
 );
 
 export async function POST(request: NextRequest) {
+  const supabase = getSupabase();
   if (!TWILIO_CONFIGURED) {
     return NextResponse.json(
       { error: 'Twilio credentials not configured. Set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER.' },
