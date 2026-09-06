@@ -28,9 +28,9 @@ export default function EmployeeSchedulePage() {
   if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="w-9 h-9 animate-spin text-indigo-500" /></div>;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <EmployeeSidebar employeeName={`${employee.first_name} ${employee.last_name}`} role={employee.role} />
-      <main className="pl-64 flex-1 p-8">
+      <main className="flex-1 md:pl-64 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 min-w-0">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-slate-900">My Schedule</h1>
@@ -50,11 +50,11 @@ export default function EmployeeSchedulePage() {
                 const isToday = new Date().toLocaleDateString('en-US', { weekday: 'long' }) === day;
                 
                 return (
-                  <div key={day} className={`flex ${isToday ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
+                  <div key={day} className={`flex flex-col sm:flex-row ${isToday ? 'bg-indigo-50/50' : 'hover:bg-slate-50'}`}>
                     {/* Day Column */}
-                    <div className={`w-32 flex-shrink-0 p-6 border-r border-slate-100 flex flex-col justify-center ${isToday ? 'bg-indigo-100/50 border-r-indigo-100' : ''}`}>
+                    <div className={`w-full sm:w-32 flex-shrink-0 p-4 sm:p-6 border-b sm:border-b-0 sm:border-r border-slate-100 flex sm:flex-col justify-between sm:justify-center items-center sm:items-start ${isToday ? 'bg-indigo-100/50 border-r-indigo-100' : ''}`}>
                       <p className={`text-sm font-bold ${isToday ? 'text-indigo-700' : 'text-slate-700'}`}>{day}</p>
-                      {isToday && <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider mt-1">Today</span>}
+                      {isToday && <span className="text-[10px] font-bold text-indigo-500 uppercase tracking-wider">Today</span>}
                     </div>
                     {/* Shifts Column */}
                     <div className="flex-1 p-4">

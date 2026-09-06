@@ -1,9 +1,20 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
+import { verifyTwilioSignature } from '@/lib/rbac';
 
 // This handles the initial webhook from Twilio when someone calls the provisioned number
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
+    // Basic signature verification
+    const isValid = verifyTwilioSignature(req, {});
+    if (!isValid) {
+      console.error('Invalid Twilio signature in incoming webhook');
+      return new NextResponse('<?xml version="1.0" encoding="UTF-8"?><Response><Say>Unauthorized.</Say></Response>', {
+        status: 403,
+        headers: { 'Content-Type': 'text/xml' }
+      });
+    }
+
     // Twilio sends data as application/x-www-form-urlencoded
     const body = await req.text();
     const params = new URLSearchParams(body);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
+import { PWAListener } from "@/components/PWAListener";
 
 const manrope = Manrope({ subsets: ["latin"], weight: ['400', '500', '600', '700'] });
 
@@ -17,6 +18,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${manrope.className} bg-cloud text-ink-navy antialiased min-h-screen`}>
+        <PWAListener />
         {children}
       </body>
     </html>

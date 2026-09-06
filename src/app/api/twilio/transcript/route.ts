@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyTwilioSignature } from '@/lib/rbac';
 
 const getSupabase = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -17,6 +18,13 @@ const getSupabase = () => createClient(
 export async function POST(request: NextRequest) {
   const supabase = getSupabase();
   try {
+    // Basic signature verification
+    const isValid = verifyTwilioSignature(request, {});
+    if (!isValid) {
+      console.error('Invalid Twilio signature in transcript callback');
+      return NextResponse.json({ ok: false, error: 'Unauthorized signature' }, { status: 403 });
+    }
+
     const { searchParams } = new URL(request.url);
     const callId = searchParams.get('call_id');
     const formData = await request.formData();

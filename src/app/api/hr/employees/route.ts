@@ -1,8 +1,15 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { verifyRole } from '@/lib/rbac';
 
 export async function POST(req: Request) {
   try {
+    // Enforce RBAC
+    const authCheck = await verifyRole(req, ['super_admin', 'corporate_admin', 'hr_manager', 'franchise_owner']);
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: 403 });
+    }
+
     const body = await req.json();
     const { email, first_name, last_name, role, pay_rate, pay_type, tenant_id } = body;
 

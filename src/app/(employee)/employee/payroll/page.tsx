@@ -36,25 +36,25 @@ export default function EmployeePayrollPage() {
   const fmt = (v: number | null) => v != null ? `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00';
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <EmployeeSidebar employeeName={`${employee.first_name} ${employee.last_name}`} role={employee.role} />
-      <main className="pl-64 flex-1 p-8">
+      <main className="flex-1 md:pl-64 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 min-w-0">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex justify-between items-end">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Payroll &amp; Stubs</h1>
-              <p className="text-slate-500 text-sm mt-0.5">View your earnings history and download pay stubs.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Payroll &amp; Stubs</h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">View your earnings history and download pay stubs.</p>
             </div>
-            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-              <span className="text-sm font-semibold text-slate-500">YTD Gross</span>
-              <span className="text-xl font-bold text-emerald-600">
+            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3 self-start sm:self-auto">
+              <span className="text-xs sm:text-sm font-semibold text-slate-500">YTD Gross</span>
+              <span className="text-lg sm:text-xl font-bold text-emerald-600">
                 {fmt(payStubs.filter(p => new Date(p.period_end).getFullYear() === new Date().getFullYear()).reduce((s, p) => s + (p.gross_pay || 0), 0))}
               </span>
             </div>
           </div>
 
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-6 py-5 border-b border-slate-100">
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
+            <div className="px-5 sm:px-6 py-4 sm:py-5 border-b border-slate-100">
               <h2 className="text-base font-bold text-slate-900">Pay History</h2>
             </div>
             {payStubs.length === 0 ? (

@@ -37,13 +37,13 @@ export default function EmployeeTrainingPage() {
   const completed = trainings.filter(t => t.status === 'completed');
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <EmployeeSidebar employeeName={`${employee.first_name} ${employee.last_name}`} role={employee.role} />
-      <main className="pl-64 flex-1 p-8">
+      <main className="flex-1 md:pl-64 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 min-w-0">
         <div className="max-w-4xl mx-auto space-y-6">
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Training Hub</h1>
-            <p className="text-slate-500 text-sm mt-0.5">Required compliance and safety modules.</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Training Hub</h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Required compliance and safety modules.</p>
           </div>
 
           {/* Action Required */}

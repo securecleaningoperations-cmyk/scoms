@@ -49,14 +49,14 @@ export default function PortalDashboardPage() {
   const fmt = (v: number | null) => v != null ? `$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : '$0.00';
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <PortalSidebar clientName={portalUser?.clients?.name} />
-      <main className="pl-64 flex-1 p-8">
+      <main className="flex-1 md:pl-64 p-4 sm:p-6 lg:p-8 pb-20 md:pb-8 min-w-0">
         <div className="max-w-5xl mx-auto space-y-6">
           {/* Welcome Header */}
           <div>
-            <h1 className="text-2xl font-bold text-slate-900">Welcome back</h1>
-            <p className="text-slate-500 text-sm mt-0.5">{portalUser?.clients?.name} — Customer Portal</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Welcome back</h1>
+            <p className="text-slate-500 text-xs sm:text-sm mt-0.5">{portalUser?.clients?.name} — Customer Portal</p>
           </div>
 
           {/* KPI Cards */}
@@ -88,9 +88,9 @@ export default function PortalDashboardPage() {
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
             {/* Next Service */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm col-span-1">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm lg:col-span-1">
               <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <Calendar className="w-4 h-4 text-emerald-500" /> Next Service
               </h2>
@@ -111,7 +111,7 @@ export default function PortalDashboardPage() {
             </div>
 
             {/* Recent Requests */}
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm col-span-2">
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-sm lg:col-span-2">
               <h2 className="text-sm font-bold text-slate-900 mb-4 flex items-center gap-2">
                 <ClipboardList className="w-4 h-4 text-blue-500" /> Recent Service Requests
               </h2>

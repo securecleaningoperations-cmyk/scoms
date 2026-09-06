@@ -1,17 +1,25 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, Users, Briefcase, FileText, DollarSign, ShieldCheck,
-  Calendar, MessageSquare, Lock, TrendingUp, UserCircle, BarChart,
-  Building2, Settings, ChevronDown, ChevronRight, Shield, FolderOpen,
-  ClipboardList, BarChart2, UserCheck, Network, Settings2, Bot, Activity, GraduationCap
+import { useState } from "react";
+import {
+  X, Shield, ChevronDown, ChevronRight, LayoutDashboard, Users,
+  Briefcase, DollarSign, ShieldCheck, Calendar, MessageSquare,
+  Lock, Building2, FolderOpen, ClipboardList, BarChart2,
+  UserCheck, Network, Settings2, Bot, Activity, GraduationCap,
+  Smartphone, ExternalLink, LogOut
 } from "lucide-react";
-
 import clsx from "clsx";
+import { supabase } from "@/lib/supabase";
+
+interface MobileSidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
+  userRole: string;
+  onRoleChange?: (role: string) => void;
+  userEmail?: string;
+}
 
 const ROLE_ACCESS: Record<string, string[]> = {
   'super_admin': ['ALL'],
@@ -172,36 +180,17 @@ const navStructure = [
   }
 ];
 
-
-export function Sidebar() {
+export function MobileSidebar({ isOpen, onClose, userRole, onRoleChange, userEmail }: MobileSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [userRole, setUserRole] = useState<string>('super_admin');
   const [expandedMenus, setExpandedMenus] = useState<string[]>([
-    'Dashboard', 'Clients', 'Finance', 'Intelligence', 'Executive', 'Workforce', 'Documents'
+    'Dashboard', 'Clients', 'Finance', 'Intelligence'
   ]);
 
-  useEffect(() => {
-    async function getRole() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Try user metadata first
-        let role = user.user_metadata?.role;
-        if (!role) {
-          const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
-          role = data?.role;
-        }
-        if (role) {
-          const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
-          setUserRole(normalizedRole);
-        }
-      }
-    }
-    getRole();
-  }, []);
+  if (!isOpen) return null;
 
   const allowedGroups = ROLE_ACCESS[userRole] || ['Dashboard'];
-  const filteredNav = navStructure.filter(group => 
+  const filteredNav = navStructure.filter(group =>
     allowedGroups.includes('ALL') || allowedGroups.includes(group.name)
   );
 
@@ -211,103 +200,160 @@ export function Sidebar() {
     );
   };
 
+  const handleLinkClick = (href: string) => {
+    router.push(href);
+    onClose();
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    onClose();
+  };
+
   return (
-    <div className="w-[260px] bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 z-10 hidden md:flex font-sans">
-      <div className="p-5 flex items-center gap-3 border-b border-slate-100">
-        <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-          <Shield className="w-5 h-5" />
-        </div>
-        <div>
-          <h1 className="text-[15px] font-bold text-slate-900 leading-tight">SCOMS</h1>
-          <p className="text-[11px] text-slate-500 font-medium">Secure Cleaning Ops</p>
-        </div>
-      </div>
+    <div className="fixed inset-0 z-50 md:hidden flex">
+      {/* Backdrop */}
+      <div
+        className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300"
+        onClick={onClose}
+      />
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-        {filteredNav.map((group) => {
-          const isExpanded = expandedMenus.includes(group.name);
-          const hasChildren = group.children && group.children.length > 0;
-          const isActive = pathname === group.href || (hasChildren && group.children.some(c => pathname === c.href));
+      {/* Drawer */}
+      <div className="relative w-[300px] max-w-[85vw] bg-white h-full shadow-2xl flex flex-col z-10 animate-in slide-in-from-left duration-300">
+        {/* Header */}
+        <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-900 text-white">
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <h2 className="text-sm font-bold tracking-tight">SCOMS 6.1</h2>
+              <p className="text-[10px] text-slate-400">Operations OS</p>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
 
-          return (
-            <div key={group.name} className="mb-0.5">
-              {hasChildren ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleMenu(group.name);
-                    router.push(group.href);
-                  }}
-                  className={clsx(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 text-[14px] font-medium group cursor-pointer",
-                    isActive ? "text-blue-600 bg-blue-50/70 font-semibold" : "text-slate-700 hover:bg-slate-100"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
+        {/* Quick Portal Switcher Pills */}
+        <div className="p-3 bg-slate-50 border-b border-slate-200 grid grid-cols-2 gap-2">
+          <button
+            onClick={() => handleLinkClick('/employee/dashboard')}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+          >
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>Field App</span>
+          </button>
+          <button
+            onClick={() => handleLinkClick('/portal/dashboard')}
+            className="flex items-center justify-center gap-1.5 px-2.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold shadow-xs"
+          >
+            <ExternalLink className="w-3.5 h-3.5" />
+            <span>Client Portal</span>
+          </button>
+        </div>
+
+        {/* Navigation List */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
+          {filteredNav.map((group) => {
+            const isExpanded = expandedMenus.includes(group.name);
+            const hasChildren = group.children && group.children.length > 0;
+            const isActive = pathname === group.href || (hasChildren && group.children.some(c => pathname === c.href));
+
+            return (
+              <div key={group.name} className="mb-0.5">
+                {hasChildren ? (
+                  <button
+                    type="button"
+                    onClick={() => toggleMenu(group.name)}
+                    className={clsx(
+                      "w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                      isActive ? "text-blue-600 bg-blue-50/80 font-semibold" : "text-slate-700 hover:bg-slate-100"
+                    )}
+                  >
+                    <div className="flex items-center gap-3">
+                      <group.icon className={clsx(
+                        "w-4 h-4",
+                        isActive ? "text-blue-600" : "text-slate-400"
+                      )} />
+                      <span>{group.name}</span>
+                    </div>
+                    {isExpanded ? (
+                      <ChevronDown className="w-4 h-4 text-slate-400" />
+                    ) : (
+                      <ChevronRight className="w-4 h-4 text-slate-400" />
+                    )}
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => handleLinkClick(group.href)}
+                    className={clsx(
+                      "w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left",
+                      pathname === group.href
+                        ? "bg-blue-600 text-white font-semibold shadow-xs"
+                        : "text-slate-700 hover:bg-slate-100"
+                    )}
+                  >
                     <group.icon className={clsx(
-                      "w-[18px] h-[18px]",
-                      isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                      "w-4 h-4",
+                      pathname === group.href ? "text-white" : "text-slate-400"
                     )} />
                     <span>{group.name}</span>
+                  </button>
+                )}
+
+                {isExpanded && hasChildren && (
+                  <div className="mt-1 mb-1 pl-4 flex flex-col space-y-0.5 border-l-2 border-slate-100 ml-3">
+                    {group.children.map((child) => {
+                      const isChildActive = pathname === child.href;
+                      return (
+                        <button
+                          key={child.name}
+                          onClick={() => handleLinkClick(child.href)}
+                          className={clsx(
+                            "w-full text-left px-3 py-2 rounded-md text-xs font-medium transition-colors",
+                            isChildActive
+                              ? "bg-blue-50 text-blue-600 font-semibold"
+                              : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                          )}
+                        >
+                          {child.name}
+                        </button>
+                      );
+                    })}
                   </div>
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
-              ) : (
-                <Link
-                  href={group.href}
-                  className={clsx(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150 text-[14px] font-medium group",
-                    pathname === group.href
-                      ? "bg-blue-600 text-white font-semibold shadow-sm"
-                      : "text-slate-700 hover:bg-slate-100"
-                  )}
-                >
-                  <group.icon className={clsx(
-                    "w-[18px] h-[18px]",
-                    pathname === group.href ? "text-white" : "text-slate-400 group-hover:text-slate-600"
-                  )} />
-                  <span>{group.name}</span>
-                </Link>
-              )}
-
-              {isExpanded && hasChildren && (
-                <div className="mt-0.5 mb-1.5 flex flex-col space-y-0.5">
-                  {group.children.map((child) => {
-                    const isChildActive = pathname === child.href;
-                    return (
-                      <Link
-                        key={child.name}
-                        href={child.href}
-                        className={clsx(
-                          "w-full flex items-center pl-10 pr-3 py-1.5 rounded-lg transition-colors duration-150 text-[13px] font-medium",
-                          isChildActive
-                            ? "bg-blue-50 text-blue-600 font-semibold"
-                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-                        )}
-                      >
-                        {child.name}
-                      </Link>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
-
-      <div className="p-4 border-t border-slate-200 mt-auto bg-slate-50">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-          <span className="text-[12px] font-semibold text-slate-700 capitalize">Role: {userRole.replace('_', ' ')}</span>
+                )}
+              </div>
+            );
+          })}
         </div>
-        <p className="text-[10px] text-slate-400 px-2 mt-0.5">v6.1 Enterprise • Production</p>
+
+        {/* Footer */}
+        <div className="p-4 border-t border-slate-200 bg-slate-50">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span className="text-xs font-bold text-slate-700 capitalize">
+                {userRole.replace(/_/g, ' ')}
+              </span>
+            </div>
+            {userEmail && (
+              <span className="text-[11px] text-slate-400 max-w-[120px] truncate">{userEmail}</span>
+            )}
+          </div>
+          <button
+            onClick={handleSignOut}
+            className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            <span>Sign out</span>
+          </button>
+        </div>
       </div>
     </div>
   );

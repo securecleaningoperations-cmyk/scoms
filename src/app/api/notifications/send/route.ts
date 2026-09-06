@@ -1,7 +1,13 @@
 import { NextResponse } from 'next/server';
+import { verifyRole } from '@/lib/rbac';
 
 export async function POST(req: Request) {
   try {
+    const authCheck = await verifyRole(req, ['super_admin', 'corporate_admin', 'operations_manager', 'hr_manager', 'executive']);
+    if (!authCheck.authorized) {
+      return NextResponse.json({ error: authCheck.error }, { status: 403 });
+    }
+
     const { to, type, message, subject } = await req.json();
 
     if (!to || !type || !message) {

@@ -74,29 +74,29 @@ export default function EmployeeTimesheetsPage() {
   }, 0);
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
       <EmployeeSidebar employeeName={`${employee.first_name} ${employee.last_name}`} role={employee.role} />
-      <main className="pl-64 flex-1 p-8">
+      <main className="flex-1 md:pl-64 p-4 sm:p-6 lg:p-8 pb-24 md:pb-8 min-w-0">
         <div className="max-w-4xl mx-auto space-y-6">
-          <div className="flex justify-between items-end">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <h1 className="text-2xl font-bold text-slate-900">Timesheets</h1>
-              <p className="text-slate-500 text-sm mt-0.5">Track your time and clock in/out of shifts.</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900">Timesheets</h1>
+              <p className="text-slate-500 text-xs sm:text-sm mt-0.5">Track your time and clock in/out of shifts.</p>
             </div>
-            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-              <span className="text-sm font-semibold text-slate-500">Total Logged (30 days)</span>
-              <span className="text-xl font-bold text-indigo-600">{totalHours.toFixed(1)} hrs</span>
+            <div className="bg-white px-4 py-2 rounded-xl border border-slate-200 shadow-xs flex items-center gap-3 self-start sm:self-auto">
+              <span className="text-xs sm:text-sm font-semibold text-slate-500">Total Logged (30 days)</span>
+              <span className="text-lg sm:text-xl font-bold text-indigo-600">{totalHours.toFixed(1)} hrs</span>
             </div>
           </div>
 
           {/* Clock In/Out Action */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-8 shadow-sm flex items-center justify-between">
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 sm:p-8 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-6">
             <div>
               <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2 mb-2">
                 <Clock className={`w-6 h-6 ${activeLog ? 'text-emerald-500 animate-pulse' : 'text-slate-400'}`} />
                 {activeLog ? 'Currently Clocked In' : 'Not Clocked In'}
               </h2>
-              <p className="text-sm text-slate-500">
+              <p className="text-xs sm:text-sm text-slate-500">
                 {activeLog 
                   ? `Clocked in at ${new Date(activeLog.clock_in).toLocaleTimeString()} on ${new Date(activeLog.clock_in).toLocaleDateString()}` 
                   : 'Ready to start your shift?'}
@@ -105,7 +105,7 @@ export default function EmployeeTimesheetsPage() {
             <div>
               {activeLog ? (
                 <button onClick={handleClockOut} disabled={actionLoading}
-                  className="bg-red-600 hover:bg-red-700 text-white font-bold px-8 py-4 rounded-xl flex items-center gap-2 transition-colors disabled:opacity-50 text-lg shadow-sm">
+                  className="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold px-6 sm:px-8 py-3.5 sm:py-4 rounded-xl flex items-center justify-center gap-2 transition-colors disabled:opacity-50 text-base sm:text-lg shadow-xs">
                   {actionLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Square className="w-5 h-5 fill-current" />} Clock Out
                 </button>
               ) : (
