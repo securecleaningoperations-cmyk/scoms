@@ -28,9 +28,9 @@ export default function HRDashboard() {
   useEffect(() => {
     async function fetchEmployees() {
       try {
-        const { data, error } = await supabase.from('employees').select('*, users(first_name, last_name, role)');
-        if (error) throw error;
-        setEmployees(data || []);
+        const res = await fetch('/api/hr/employees');
+        const json = await res.json();
+        setEmployees(json.data || []);
       } catch (err) {
         console.error(err);
       } finally {

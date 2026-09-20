@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Video, Plus, Loader2, Link as LinkIcon, Calendar, Clock,
-  Users, CheckCircle2, Copy, Check, Sparkles, AlertCircle, Phone, ArrowLeft
+  Users, CheckCircle2, Copy, Check, Sparkles, AlertCircle, Phone, ArrowLeft, Radio
 } from "lucide-react";
 import { JitsiMeetViewer } from "@/components/JitsiMeetViewer";
 
@@ -22,20 +22,31 @@ interface MeetingRecord {
 
 const DEFAULT_MEETINGS: MeetingRecord[] = [
   {
+    id: 'meet-all-hands',
+    title: '🏢 SCOMS Company-Wide All-Hands Hall (Open to All Roles)',
+    scheduled_at: new Date().toISOString(),
+    meet_url: 'SCOMS-All-Hands-Company-Wide',
+    type: 'meeting',
+    status: 'live',
+    host: 'Corporate Leadership & Executive Operations',
+    participants: 'Super Admins, Field Cleaners, Franchisees, & Clients',
+    purpose: 'Permanent company-wide virtual auditorium for all-hands operations, shift sync, and training'
+  },
+  {
     id: 'meet-101',
     title: 'Commercial Site Walkthrough — Apex Logistics Center',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 30).toISOString(), // in 30 mins
+    scheduled_at: new Date(Date.now() + 1000 * 60 * 30).toISOString(),
     meet_url: 'SCOMS-Apex-Logistics-Walkthrough',
     type: 'meeting',
     status: 'live',
     host: 'Marcus Vance (Operations Director)',
     participants: 'David Chen (Facility Director, Apex)',
-    purpose: 'Virtual Site Walkthrough & High-Touch Disinfection Scope'
+    purpose: 'Virtual Site Walkthrough & High-Touch Disinfection Scope Review'
   },
   {
     id: 'meet-102',
     title: 'Pre-Shift Operations Briefing & Safety Alignment',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 180).toISOString(), // in 3 hours
+    scheduled_at: new Date(Date.now() + 1000 * 60 * 180).toISOString(),
     meet_url: 'SCOMS-Evening-Shift-Briefing',
     type: 'meeting',
     status: 'scheduled',
@@ -46,7 +57,7 @@ const DEFAULT_MEETINGS: MeetingRecord[] = [
   {
     id: 'meet-103',
     title: 'Gold Tier Proposal Presentation — St. Jude Clinic',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(), // tomorrow
+    scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
     meet_url: 'SCOMS-StJude-Proposal-Review',
     type: 'meeting',
     status: 'scheduled',
@@ -57,13 +68,13 @@ const DEFAULT_MEETINGS: MeetingRecord[] = [
   {
     id: 'meet-104',
     title: 'Monthly Franchise Governance & Quality Audit',
-    scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(), // 2 days ago
+    scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
     meet_url: 'SCOMS-Franchise-Review-Q3',
     type: 'meeting',
     status: 'completed',
-    host: 'CEO / Operations Executive',
-    participants: 'Franchise Operators (North & Central Hubs)',
-    purpose: 'CAPA review, inspection scores, royalty reconciliation'
+    host: 'Executive Franchise Director',
+    participants: 'Dallas, Phoenix, and Atlanta Franchise Operators',
+    purpose: 'CAPA quality review, inspection scores, and royalty reconciliation'
   }
 ];
 
@@ -80,9 +91,9 @@ export default function MeetingsPage() {
   const [form, setForm] = useState({
     title: '',
     scheduled_time: '',
-    purpose: 'Virtual Site Walkthrough & Estimate',
+    purpose: 'Virtual Site Walkthrough & Scope Review',
     host: 'Operations Manager',
-    participants: 'Commercial Client Lead'
+    participants: 'Commercial Client / Staff'
   });
 
   useEffect(() => {
@@ -99,7 +110,6 @@ export default function MeetingsPage() {
         .order('scheduled_at', { ascending: false });
 
       if (!error && data && data.length > 0) {
-        // Map database records and combine with default high-quality seeds
         const mapped: MeetingRecord[] = data.map((d: any) => ({
           id: d.id,
           title: d.title || 'Client Video Meeting',
@@ -111,22 +121,26 @@ export default function MeetingsPage() {
           participants: d.participants || 'Client / Operations',
           purpose: d.content || 'Facility Operations & Walkthrough'
         }));
-        setMeetings([...mapped, ...DEFAULT_MEETINGS]);
+        setMeetings([...DEFAULT_MEETINGS.slice(0, 1), ...mapped, ...DEFAULT_MEETINGS.slice(1)]);
       } else {
         setMeetings(DEFAULT_MEETINGS);
       }
     } catch (e) {
-      console.warn('Using offline mock meetings:', e);
       setMeetings(DEFAULT_MEETINGS);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleJoinAllHands = () => {
+    setActiveMeetingTitle('SCOMS Company-Wide All-Hands Video Hall');
+    setActiveMeeting('SCOMS-All-Hands-Company-Wide');
+  };
+
   const handleStartInstantMeeting = () => {
-    const roomUUID = Math.random().toString(36).substring(2, 9).toUpperCase();
-    const instantRoom = `SCOMS-Instant-Room-${roomUUID}`;
-    setActiveMeetingTitle('Instant Commercial Operations Room');
+    const roomUUID = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const instantRoom = `SCOMS-Operations-Room-${roomUUID}`;
+    setActiveMeetingTitle('Instant Operations Video Room');
     setActiveMeeting(instantRoom);
   };
 
@@ -166,9 +180,9 @@ export default function MeetingsPage() {
     setForm({
       title: '',
       scheduled_time: '',
-      purpose: 'Virtual Site Walkthrough & Estimate',
+      purpose: 'Virtual Site Walkthrough & Scope Review',
       host: 'Operations Manager',
-      participants: 'Commercial Client Lead'
+      participants: 'Commercial Client / Staff'
     });
     setIsAdding(false);
   };
@@ -187,40 +201,54 @@ export default function MeetingsPage() {
     return true;
   });
 
+  // Full Screen Meeting Mode: Fixes Screenshot 2 squashed layout completely!
   if (activeMeeting) {
     return (
-      <div className="p-4 md:p-6 max-w-[1600px] mx-auto space-y-4 min-h-[calc(100vh-100px)] flex flex-col">
-        <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+      <div className="fixed inset-0 z-[99999] bg-slate-950 flex flex-col w-screen h-screen overflow-hidden">
+        {/* Meeting Header Bar */}
+        <div className="h-14 bg-slate-900 border-b border-slate-800 px-4 sm:px-6 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setActiveMeeting(null)}
-              className="p-2 hover:bg-slate-100 rounded-lg text-slate-600 transition"
+              className="p-2 hover:bg-slate-800 rounded-xl text-slate-300 hover:text-white transition flex items-center gap-1.5 text-xs font-bold"
               title="Return to Meetings Schedule"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline">Exit to Dashboard</span>
             </button>
+            <div className="h-4 w-px bg-slate-800" />
             <div>
-              <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Video className="w-5 h-5 text-blue-600" />
-                {activeMeetingTitle}
+              <h2 className="text-sm sm:text-base font-bold text-white flex items-center gap-2">
+                <Video className="w-4 h-4 text-blue-400" />
+                <span>{activeMeetingTitle}</span>
               </h2>
-              <p className="text-xs text-slate-500 font-mono">
-                Room: https://meet.jit.si/{activeMeeting}
-              </p>
             </div>
           </div>
-          <button
-            onClick={() => setActiveMeeting(null)}
-            className="px-4 py-2 text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition"
-          >
-            Exit to Dashboard
-          </button>
+
+          <div className="flex items-center gap-3">
+            <span className="hidden md:inline-block text-xs font-mono text-slate-400">
+              https://meet.jit.si/{activeMeeting}
+            </span>
+            <button
+              onClick={() => copyMeetingLink(activeMeeting, 'active-room')}
+              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg border border-slate-700 transition"
+            >
+              {copiedId === 'active-room' ? 'Copied Link!' : 'Copy Invite Link'}
+            </button>
+            <button
+              onClick={() => setActiveMeeting(null)}
+              className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold rounded-lg transition"
+            >
+              Leave Room
+            </button>
+          </div>
         </div>
 
-        <div className="flex-1 h-[750px] min-h-[600px] rounded-2xl overflow-hidden shadow-xl border border-slate-800">
+        {/* Full-Height Jitsi Meeting Component */}
+        <div className="flex-1 w-full h-[calc(100vh-56px)] relative overflow-hidden bg-black">
           <JitsiMeetViewer
             roomName={activeMeeting}
-            displayName="Secure Cleaning Ops Director"
+            displayName="SCOMS Team Member"
             onMeetingEnd={() => setActiveMeeting(null)}
           />
         </div>
@@ -229,35 +257,46 @@ export default function MeetingsPage() {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-[1400px] mx-auto space-y-8 pb-24 font-display">
-      {/* Header Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-3xl p-8 border border-slate-800 shadow-xl relative overflow-hidden">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+    <div className="p-6 md:p-8 max-w-[1500px] mx-auto space-y-8 pb-24 font-display">
+      {/* Permanent Company-Wide All-Hands Room Hero Card */}
+      <div className="bg-gradient-to-r from-blue-900 via-indigo-950 to-slate-950 text-white rounded-3xl p-6 sm:p-8 border border-blue-500/30 shadow-2xl relative overflow-hidden">
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/20 border border-blue-400/30 text-blue-300 text-xs font-semibold">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>SCOMS v6.1 Video Communication Center</span>
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold">
+              <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+              <span>Permanent All-Hands Hall Active</span>
             </div>
-            <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
-              Video Meetings & Virtual Walkthroughs
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight text-white">
+              SCOMS Company-Wide All-Hands Video Hall
             </h1>
-            <p className="text-slate-300 text-sm md:text-base leading-relaxed">
-              Powered by Open-Source Jitsi Meet. Conduct HD client walkthroughs, crew safety briefings, and franchise audits with end-to-end encryption.
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Open to all corporate executives, operations managers, field cleaning staff, franchise owners, and clients. Join with 1 click anytime for daily operational syncs, safety briefings, or client reviews.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
             <button
-              onClick={handleStartInstantMeeting}
-              className="flex items-center gap-2 px-5 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-emerald-950/40 transition-all hover:scale-[1.02]"
+              onClick={handleJoinAllHands}
+              className="flex items-center gap-2 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-2xl font-black text-sm shadow-xl shadow-emerald-950/50 transition-all hover:scale-105"
             >
-              <Video className="w-4 h-4" /> Start Instant Meeting
+              <Radio className="w-4 h-4 animate-pulse" />
+              <span>Join Company All-Hands</span>
             </button>
+
+            <button
+              onClick={handleStartInstantMeeting}
+              className="flex items-center gap-2 px-5 py-3.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-bold text-sm shadow-lg transition"
+            >
+              <Video className="w-4 h-4" />
+              <span>Start Instant Room</span>
+            </button>
+
             <button
               onClick={() => setShowModal(true)}
-              className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-blue-950/40 transition-all hover:scale-[1.02]"
+              className="flex items-center gap-2 px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-2xl font-bold text-sm transition"
             >
-              <Plus className="w-4 h-4" /> Schedule Conference
+              <Plus className="w-4 h-4" />
+              <span>Schedule Meeting</span>
             </button>
           </div>
         </div>
@@ -267,7 +306,7 @@ export default function MeetingsPage() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {[
           { label: 'Total Scheduled', value: meetings.length, icon: Calendar, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { label: 'Live Now', value: meetings.filter(m => m.status === 'live').length, icon: Video, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+          { label: 'Active Live Rooms', value: meetings.filter(m => m.status === 'live').length, icon: Video, color: 'text-emerald-600', bg: 'bg-emerald-50' },
           { label: 'Upcoming Today', value: meetings.filter(m => m.status === 'scheduled').length, icon: Clock, color: 'text-amber-600', bg: 'bg-amber-50' },
           { label: 'Completed Walkthroughs', value: meetings.filter(m => m.status === 'completed').length, icon: CheckCircle2, color: 'text-indigo-600', bg: 'bg-indigo-50' }
         ].map((m, i) => (
@@ -290,7 +329,7 @@ export default function MeetingsPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 rounded-xl text-xs md:text-sm font-bold capitalize transition ${
+              className={`px-4 py-2 rounded-xl text-xs sm:text-sm font-bold capitalize transition ${
                 activeTab === tab
                   ? 'bg-slate-900 text-white shadow-sm'
                   : 'text-slate-600 hover:bg-slate-100'
@@ -311,7 +350,7 @@ export default function MeetingsPage() {
           return (
             <div
               key={meeting.id}
-              className={`bg-white rounded-2xl border p-6 flex flex-col justify-between transition-all hover:shadow-md ${
+              className={`bg-white rounded-3xl border p-6 flex flex-col justify-between transition-all hover:shadow-md ${
                 isLive
                   ? 'border-emerald-300 ring-2 ring-emerald-500/20 bg-gradient-to-br from-white to-emerald-50/20'
                   : 'border-slate-200'
@@ -321,25 +360,25 @@ export default function MeetingsPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <span
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                      className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${
                         isLive
-                          ? 'bg-emerald-100 text-emerald-700 animate-pulse'
+                          ? 'bg-emerald-100 text-emerald-800 animate-pulse'
                           : isCompleted
                           ? 'bg-slate-100 text-slate-600'
-                          : 'bg-blue-100 text-blue-700'
+                          : 'bg-blue-100 text-blue-800'
                       }`}
                     >
-                      {isLive && <span className="w-1.5 h-1.5 rounded-full bg-emerald-600" />}
+                      {isLive && <span className="w-2 h-2 rounded-full bg-emerald-600" />}
                       {meeting.status.toUpperCase()}
                     </span>
-                    <h3 className="text-base md:text-lg font-bold text-slate-900 mt-2">
+                    <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-2">
                       {meeting.title}
                     </h3>
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-600 font-medium bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                  <strong>Scope:</strong> {meeting.purpose}
+                <p className="text-xs text-slate-600 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
+                  <strong>Scope & Objectives:</strong> {meeting.purpose}
                 </p>
 
                 <div className="grid grid-cols-2 gap-2 text-xs text-slate-500 pt-1">
@@ -358,17 +397,17 @@ export default function MeetingsPage() {
               <div className="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between gap-3">
                 <button
                   onClick={() => copyMeetingLink(meeting.meet_url, meeting.id)}
-                  className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 py-2 px-3 hover:bg-slate-100 rounded-lg transition"
+                  className="flex items-center gap-1 text-xs font-semibold text-slate-600 hover:text-slate-900 py-2 px-3 hover:bg-slate-100 rounded-xl transition"
                 >
                   {copiedId === meeting.id ? (
                     <>
                       <Check className="w-3.5 h-3.5 text-emerald-600" />
-                      <span className="text-emerald-600">Copied Link!</span>
+                      <span className="text-emerald-600 font-bold">Copied Link!</span>
                     </>
                   ) : (
                     <>
                       <Copy className="w-3.5 h-3.5 text-slate-400" />
-                      <span>Copy Invite</span>
+                      <span>Copy Invite Link</span>
                     </>
                   )}
                 </button>
@@ -378,14 +417,14 @@ export default function MeetingsPage() {
                     setActiveMeetingTitle(meeting.title);
                     setActiveMeeting(meeting.meet_url);
                   }}
-                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs md:text-sm shadow-sm transition ${
+                  className={`flex items-center gap-2 px-6 py-2.5 rounded-xl font-bold text-xs sm:text-sm shadow-sm transition ${
                     isLive
-                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-2 ring-emerald-400'
+                      ? 'bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-900/20'
                       : 'bg-slate-900 hover:bg-blue-600 text-white'
                   }`}
                 >
                   <Video className="w-4 h-4" />
-                  <span>{isLive ? 'Join Live Room' : 'Enter Conference'}</span>
+                  <span>{isLive ? 'Join Room Now' : 'Enter Conference'}</span>
                 </button>
               </div>
             </div>
@@ -393,14 +432,14 @@ export default function MeetingsPage() {
         })}
       </div>
 
-      {/* Schedule Modal */}
+      {/* Schedule Conference Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 md:p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
+          <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 sm:p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Schedule Video Conference</h3>
-                <p className="text-xs text-slate-500 mt-0.5">Generates encrypted Jitsi room & notification</p>
+                <p className="text-xs text-slate-500 mt-0.5">Encrypted Jitsi room with calendar invite</p>
               </div>
               <button
                 onClick={() => setShowModal(false)}
@@ -427,7 +466,7 @@ export default function MeetingsPage() {
 
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                  Meeting Purpose & Agenda
+                  Meeting Purpose & Objectives
                 </label>
                 <select
                   className="w-full border border-slate-300 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"

@@ -101,6 +101,26 @@ export default function DashboardLayout({
       router.push('/employee/dashboard');
     } else if (newRole === 'client_admin') {
       router.push('/portal/dashboard');
+    } else if (newRole === 'executive') {
+      router.push('/dashboard/executive');
+    } else if (newRole === 'operations_manager') {
+      router.push('/dashboard/operations');
+    } else if (newRole === 'finance_admin') {
+      router.push('/dashboard/gl/accountant');
+    } else if (newRole === 'hr_manager') {
+      router.push('/dashboard/hr');
+    } else if (newRole === 'compliance_officer') {
+      router.push('/dashboard/security');
+    } else if (newRole === 'quality_manager') {
+      router.push('/dashboard/quality');
+    } else if (newRole === 'franchise_admin') {
+      router.push('/dashboard/franchise');
+    } else if (newRole === 'vendor_manager') {
+      router.push('/dashboard/subcontractors');
+    } else if (newRole === 'supervisor') {
+      router.push('/dashboard/scheduling');
+    } else {
+      router.push('/dashboard');
     }
   };
 
@@ -140,6 +160,14 @@ export default function DashboardLayout({
 
             {/* Quick Portals Links (Desktop) */}
             <div className="hidden lg:flex items-center gap-2 pl-2">
+              <Link
+                href="/dashboard/communications/meetings"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-colors border border-emerald-200/80 shadow-xs"
+                title="Join Company-Wide All-Hands Video Hall"
+              >
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span>Company All-Hands</span>
+              </Link>
               <Link
                 href="/employee/dashboard"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-colors"

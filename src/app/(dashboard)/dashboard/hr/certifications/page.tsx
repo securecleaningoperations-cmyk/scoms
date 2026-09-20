@@ -25,21 +25,28 @@ export default function CertificationsPage() {
   }, []);
 
   const fetchEmployees = async () => {
-    const { data } = await supabase.from('employees').select('id, users(first_name, last_name)');
-    if (data) setEmployees(data);
+    try {
+      const res = await fetch('/api/hr/employees');
+      const json = await res.json();
+      if (json.data) setEmployees(json.data);
+    } catch {
+      // Ignore
+    }
   };
 
   const fetchCertifications = async () => {
     setIsLoading(true);
-    const { data, error } = await supabase.from('certifications').select('*, employees(id, first_name, last_name, users(first_name, last_name))').order('created_at', { ascending: false });
-    if (!error && data) {
+    try {
+      const res = await fetch('/api/hr/certifications');
+      const json = await res.json();
+      const data = json.data || [];
       setCertifications(data);
-      
+
       const now = new Date().getTime();
       let valid = 0;
       let expiringSoon = 0;
       let expired = 0;
-      
+
       data.forEach((cert: any) => {
         if (cert.expiry_date) {
           const daysRemaining = Math.ceil((new Date(cert.expiry_date).getTime() - now) / (1000 * 3600 * 24));
@@ -49,12 +56,12 @@ export default function CertificationsPage() {
         }
       });
       setStats({ valid, expiringSoon, expired });
-    }
-    else {
-      console.error(error);
+    } catch (err) {
+      console.error("Error fetching certifications:", err);
       setCertifications([]);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const getEmpName = (emp: any) => {

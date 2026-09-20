@@ -16,13 +16,18 @@ export default function PerformancePage() {
 
   const fetchAll = async () => {
     setLoading(true);
-    const [{ data: r }, { data: e }] = await Promise.all([
-      supabase.from('performance_reviews').select('*, employees(id, user_id, first_name, last_name, users(first_name, last_name))').order('created_at', { ascending: false }),
-      supabase.from('employees').select('id, user_id, first_name, last_name, users(first_name, last_name)'),
-    ]);
-    setReviews(r || []);
-    setEmployees(e || []);
-    setLoading(false);
+    try {
+      const [perfRes, empRes] = await Promise.all([
+        fetch('/api/hr/performance').then(res => res.json()).catch(() => ({ data: [] })),
+        fetch('/api/hr/employees').then(res => res.json()).catch(() => ({ data: [] }))
+      ]);
+      setReviews(perfRes.data || []);
+      setEmployees(empRes.data || []);
+    } catch {
+      // Ignore
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getEmpName = (emp: any) => {
@@ -39,22 +44,29 @@ export default function PerformancePage() {
     
     const selectedEmp = employees.find(emp => getEmpName(emp) === form.employee_name);
 
-    const { error } = await supabase.from('performance_reviews').insert([{
-      employee_id: selectedEmp?.id || null,
-      score: parseFloat(form.score) || 0,
-      department: form.department,
-      notes: form.notes,
-      review_date: new Date().toISOString().split('T')[0],
-      status: 'completed',
-    }]);
-    if (!error) { 
-      setShowModal(false); 
-      setForm({ employee_name: '', score: '', department: 'Commercial', notes: '' }); 
-      fetchAll(); 
-    }
-    else {
-      console.error(error);
-      alert("Error: " + error.message + "\n\nPlease ensure you have run fix_schema.sql to create the table and disable RLS.");
+    try {
+      const res = await fetch('/api/hr/performance', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          employee_id: selectedEmp?.id || null,
+          score: parseFloat(form.score) || 0,
+          department: form.department,
+          notes: form.notes,
+          review_date: new Date().toISOString().split('T')[0],
+          status: 'completed',
+        })
+      });
+      const resJson = await res.json();
+      if (resJson.success) {
+        setShowModal(false); 
+        setForm({ employee_name: '', score: '', department: 'Commercial', notes: '' }); 
+        fetchAll(); 
+      } else {
+        alert("Error saving review: " + (resJson.error || 'Failed to save review'));
+      }
+    } catch (err: any) {
+      alert("Error saving review: " + err.message);
     }
     setIsAdding(false);
   };

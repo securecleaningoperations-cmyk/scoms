@@ -19,11 +19,17 @@ export default function OnboardingCenter() {
 
   const fetchEmployees = async () => {
     setLoading(true);
-    const { data } = await supabase.from('employees').select('*, users(first_name, last_name, email)');
-    if (data) {
-      setEmployees(data);
+    try {
+      const res = await fetch('/api/hr/employees');
+      const json = await res.json();
+      if (json.data) {
+        setEmployees(json.data);
+      }
+    } catch {
+      // Ignore
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddEmployee = async (e: React.FormEvent) => {

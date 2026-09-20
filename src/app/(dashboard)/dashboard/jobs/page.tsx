@@ -29,17 +29,22 @@ export default function JobsPage() {
     setIsLoading(true);
     const [
       { data: jobsData },
-      { data: clientsData },
-      { data: employeesData }
+      { data: clientsData }
     ] = await Promise.all([
       supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-      supabase.from('clients').select('id, name'),
-      supabase.from('employees').select('id, users(first_name, last_name)')
+      supabase.from('clients').select('id, name')
     ]);
+
+    try {
+      const empRes = await fetch('/api/hr/employees');
+      const empJson = await empRes.json();
+      if (empJson.data) setEmployees(empJson.data);
+    } catch {
+      // Ignore
+    }
     
     if (jobsData) setJobs(jobsData);
     if (clientsData) setClients(clientsData);
-    if (employeesData) setEmployees(employeesData);
     
     setIsLoading(false);
   };

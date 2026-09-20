@@ -21,22 +21,32 @@ export default function HRManagementPage() {
 
   const fetchData = async () => {
     setLoading(true);
-    // Fetch real employees
-    const { data: empData } = await supabase.from('employees').select('*, users(first_name, last_name, email)');
-    if (empData) setEmployees(empData);
+    try {
+      // Fetch employees via same-origin API (Zero CORS error)
+      const empRes = await fetch('/api/hr/employees');
+      const empJson = await empRes.json();
+      if (empJson.data) setEmployees(empJson.data);
 
-    // Fetch real trainings (unique by type to show modules)
-    const { data: trainData } = await supabase.from('trainings').select('*');
-    if (trainData) {
+      // Fetch trainings via same-origin API (Zero CORS error)
+      const trainRes = await fetch('/api/hr/training');
+      const trainJson = await trainRes.json();
+      const trainData = trainJson.data || [];
+
       const uniqueModules = trainData.reduce((acc: any[], current: any) => {
         if (!acc.find((x: any) => x.type === current.type)) {
-          acc.push({ ...current, completions: trainData.filter((t: any) => t.type === current.type && (t.status === 'Completed' || t.status === 'completed')).length });
+          acc.push({
+            ...current,
+            completions: trainData.filter((t: any) => t.type === current.type && (t.status === 'Completed' || t.status === 'completed')).length
+          });
         }
         return acc;
       }, []);
       setTrainings(uniqueModules);
+    } catch (err) {
+      console.error("Error fetching HR data:", err);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleAddEmployee = async (e: React.FormEvent) => {
@@ -120,19 +130,21 @@ export default function HRManagementPage() {
                 </tr>
               ) : employees.map(emp => (
                 <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="p-4 font-semibold text-slate-900">{emp.users?.first_name} {emp.users?.last_name}</td>
                   <td className="p-4">
-                    <select className="bg-slate-100 border-none text-sm font-semibold text-slate-700 rounded-lg p-2 cursor-pointer focus:ring-2 focus:ring-indigo-500 disabled:opacity-75" value={emp.role || 'Cleaner'} disabled>
-                      <option value="Cleaner">Cleaner</option>
-                      <option value="Lead Cleaner">Lead Cleaner</option>
-                      <option value="Supervisor">Supervisor</option>
-                      <option value="Quality Manager">Quality Manager</option>
-                      <option value="Operational Manager">Operational Manager</option>
-                    </select>
+                    <div className="font-semibold text-slate-900">
+                      {emp.first_name || emp.users?.first_name || 'Staff'} {emp.last_name || emp.users?.last_name || 'Member'}
+                    </div>
+                    <div className="text-xs text-slate-400 font-mono">{emp.email || emp.users?.email || 'staff@scoms.com'}</div>
                   </td>
-                  <td className="p-4 text-slate-600">Multiple</td>
                   <td className="p-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700`}>
+                    <span className="font-semibold text-slate-800 text-sm">
+                      {emp.position || (emp.role === 'operations_manager' ? 'Operations Director' : emp.role === 'supervisor' ? 'Field Supervisor' : 'Cleaning Specialist')}
+                    </span>
+                    <div className="text-xs text-indigo-600 font-medium">{emp.department || 'Commercial Operations'}</div>
+                  </td>
+                  <td className="p-4 text-slate-600 text-sm">Dallas-Fort Worth Metro</td>
+                  <td className="p-4">
+                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
                       Active
                     </span>
                   </td>

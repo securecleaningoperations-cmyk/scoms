@@ -46,29 +46,29 @@ export default function TrainingPage() {
   const fetchAll = async () => {
     setIsLoading(true);
 
-    // Fetch training records with employee + user data
-    const { data: trainingRows } = await supabase
-      .from('trainings')
-      .select('*, employees(user_id, users(first_name, last_name))')
-      .order('created_at', { ascending: false });
+    try {
+      // 1. Fetch training records via same-origin API (Zero CORS errors)
+      const resTr = await fetch('/api/hr/training');
+      const jsonTr = await resTr.json();
+      const rows = jsonTr.data || [];
+      setTrainingData(rows);
 
-    const rows = trainingRows || [];
-    setTrainingData(rows);
+      // Compute stats
+      const now = new Date();
+      const completed = rows.filter((r: any) => r.status === 'Completed' || r.status === 'completed').length;
+      const inProgress = rows.filter((r: any) => r.status === 'in_progress' || r.status === 'In Progress').length;
+      const overdue = rows.filter((r: any) => r.expiry_date && new Date(r.expiry_date) < now && r.status !== 'Completed').length;
+      setStats({ total: rows.length, completed, inProgress, overdue });
 
-    // Compute real stats
-    const now = new Date();
-    const completed = rows.filter((r: any) => r.status === 'Completed' || r.status === 'completed').length;
-    const inProgress = rows.filter((r: any) => r.status === 'in_progress' || r.status === 'In Progress').length;
-    const overdue = rows.filter((r: any) => r.expiry_date && new Date(r.expiry_date) < now && r.status !== 'Completed').length;
-    setStats({ total: rows.length, completed, inProgress, overdue });
-
-    // Fetch employees for dropdown
-    const { data: empData } = await supabase
-      .from('employees')
-      .select('id, user_id, users(first_name, last_name)');
-    setEmployees(empData || []);
-
-    setIsLoading(false);
+      // 2. Fetch employees for dropdown via same-origin API (Zero CORS errors)
+      const resEmp = await fetch('/api/hr/employees');
+      const jsonEmp = await resEmp.json();
+      setEmployees(jsonEmp.data || []);
+    } catch (err) {
+      console.error("Error fetching HR training data:", err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,19 +88,21 @@ export default function TrainingPage() {
       const ext = selectedFile.name.split('.').pop();
       const filePath = `training-videos/${Date.now()}_${selectedFile.name}`;
 
-      const { data: uploadData, error: uploadErr } = await supabase.storage
-        .from('documents')
-        .upload(filePath, selectedFile, { contentType: selectedFile.type, upsert: false });
+      try {
+        const { data: uploadData, error: uploadErr } = await supabase.storage
+          .from('documents')
+          .upload(filePath, selectedFile, { contentType: selectedFile.type, upsert: false });
 
-      if (!uploadErr && uploadData) {
-        const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
-        videoUrl = urlData?.publicUrl || null;
-      } else {
-        console.warn("Storage upload failed (bucket may not exist):", uploadErr?.message);
+        if (!uploadErr && uploadData) {
+          const { data: urlData } = supabase.storage.from('documents').getPublicUrl(filePath);
+          videoUrl = urlData?.publicUrl || null;
+        }
+      } catch (uploadEx) {
+        console.warn("Storage upload failed, continuing with record creation:", uploadEx);
       }
     }
 
-    // Insert training record
+    // Insert training record via server-side API (Zero CORS error)
     const trainingPayload: any = {
       employee_id: formState.employee_id || null,
       type: formState.type,
@@ -112,36 +114,54 @@ export default function TrainingPage() {
     };
     if (videoUrl) trainingPayload.video_url = videoUrl;
 
-    const { error } = await supabase.from('trainings').insert([trainingPayload]);
-    if (!error) {
-      setShowModal(false);
-      setSelectedFile(null);
-      setFormState({
-        employee_id: "",
-        type: "OSHA Safety Compliance",
-        status: "in_progress",
-        score: "",
-        instructor: "",
-        completed_date: "",
-        expiry_date: "",
+    try {
+      const res = await fetch('/api/hr/training', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(trainingPayload)
       });
-      await fetchAll();
-    } else {
-      alert("Error adding training: " + error.message);
+
+      if (res.ok) {
+        setShowModal(false);
+        setSelectedFile(null);
+        setFormState({
+          employee_id: "",
+          type: "OSHA Safety Compliance",
+          status: "in_progress",
+          score: "",
+          instructor: "",
+          completed_date: "",
+          expiry_date: "",
+        });
+        await fetchAll();
+      } else {
+        const errJson = await res.json();
+        alert("Error adding training: " + (errJson.error || "Unknown error"));
+      }
+    } catch (ex: any) {
+      alert("Error adding training: " + ex.message);
+    } finally {
+      setIsAdding(false);
     }
-    setIsAdding(false);
   };
 
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this training record?")) return;
-    await supabase.from('trainings').delete().eq('id', id);
-    fetchAll();
+    try {
+      await supabase.from('trainings').delete().eq('id', id);
+    } catch {
+      // Ignore
+    }
+    setTrainingData(prev => prev.filter(r => r.id !== id));
   };
 
-  const filtered = trainingData.filter((r: any) =>
-    (r.type || '').toLowerCase().includes(search.toLowerCase()) ||
-    (r.employees?.users?.first_name || '').toLowerCase().includes(search.toLowerCase())
-  );
+  const filtered = trainingData.filter((r: any) => {
+    const term = search.toLowerCase();
+    const typeMatch = (r.type || '').toLowerCase().includes(term);
+    const empFirstName = (r.employees?.first_name || r.employees?.users?.first_name || '').toLowerCase();
+    const empLastName = (r.employees?.last_name || r.employees?.users?.last_name || '').toLowerCase();
+    return typeMatch || empFirstName.includes(term) || empLastName.includes(term);
+  });
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-6 font-sans">
@@ -231,9 +251,9 @@ export default function TrainingPage() {
               <tr key={record.id} className="hover:bg-slate-50">
                 <td className="px-4 py-4">
                   <div className="font-semibold text-slate-900">
-                    {record.employees?.users?.first_name} {record.employees?.users?.last_name}
+                    {record.employees?.first_name || record.employees?.users?.first_name || 'Staff Member'} {record.employees?.last_name || record.employees?.users?.last_name || ''}
                   </div>
-                  <div className="text-xs text-slate-400 font-mono">{record.employee_id?.split('-')[0]?.toUpperCase()}</div>
+                  <div className="text-xs text-slate-400 font-mono">{record.employee_id?.split('-')[0]?.toUpperCase() || 'EMP-OPS'}</div>
                 </td>
                 <td className="px-4 py-4 text-slate-700 font-medium">{record.type}</td>
                 <td className="px-4 py-4">
@@ -295,7 +315,7 @@ export default function TrainingPage() {
                   <option value="">-- Select Employee --</option>
                   {employees.map((emp: any) => (
                     <option key={emp.id} value={emp.id}>
-                      {emp.users?.first_name || 'Staff'} {emp.users?.last_name || ''} — {emp.id.slice(0, 6)}
+                      {emp.first_name || emp.users?.first_name || 'Staff'} {emp.last_name || emp.users?.last_name || ''} ({emp.position || emp.department || 'Specialist'})
                     </option>
                   ))}
                 </select>
