@@ -42,14 +42,22 @@ export default function ClientsPage() {
   const fetchClients = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      // Primary: server API route (bypasses RLS)
+      try {
+        const res = await fetch("/api/clients");
+        const json = await res.json();
+        if (json.data) {
+          setClients(json.data);
+          setLoading(false);
+          return;
+        }
+      } catch {}
+      // Fallback: direct Supabase
+      const { data } = await supabase
         .from("clients")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (data) {
-        setClients(data);
-      }
+      if (data) setClients(data);
     } catch (err) {
       console.error("Error fetching clients:", err);
     } finally {
@@ -81,12 +89,27 @@ export default function ClientsPage() {
     };
 
     try {
-      const { error } = await supabase.from("clients").insert([payload]);
-      if (error) throw error;
+      let success = false;
+      try {
+        const res = await fetch("/api/clients", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (res.ok && json.data) success = true;
+        else if (json.error) throw new Error(json.error);
+      } catch {
+        const { error } = await supabase.from("clients").insert([payload]);
+        if (error) throw error;
+        success = true;
+      }
 
-      setShowAddModal(false);
-      setForm({ name: "", address: "", phone: "", email: "", type: "commercial" });
-      fetchClients();
+      if (success) {
+        setShowAddModal(false);
+        setForm({ name: "", address: "", phone: "", email: "", type: "commercial" });
+        fetchClients();
+      }
     } catch (err: any) {
       alert(err.message || "Failed to create client");
     } finally {

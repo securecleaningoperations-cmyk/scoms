@@ -402,21 +402,22 @@ function NotificationBell() {
                     onClick={() => markItemRead(n.id, n.href)}
                     className={`px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${!n.read ? 'bg-blue-50/20' : ''}`}
                   >
-                    <div className={`p-2 rounded-xl flex-shrink-0 mt-0.5 ${
-                      n.priority === 'urgent' ? 'bg-red-50 text-red-600' :
-                      n.category === 'sales' ? 'bg-purple-50 text-purple-600' :
-                      n.category === 'finance' ? 'bg-emerald-50 text-emerald-600' :
-                      'bg-blue-50 text-blue-600'
+                    <div className={`p-2 rounded-lg flex-shrink-0 mt-0.5 ${
+                      n.priority === 'urgent' ? 'bg-red-50 text-red-600 border border-red-100' :
+                      n.category === 'sales' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                      n.category === 'finance' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                      n.category === 'compliance' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                      'bg-slate-100 text-slate-700 border border-slate-200'
                     }`}>
                       {n.category === 'finance' ? <DollarSign className="w-3.5 h-3.5" /> :
-                       n.category === 'sales' ? <Sparkles className="w-3.5 h-3.5" /> :
+                       n.category === 'sales' ? <FileText className="w-3.5 h-3.5" /> :
                        n.category === 'compliance' ? <ShieldCheck className="w-3.5 h-3.5" /> :
                        <ClipboardList className="w-3.5 h-3.5" />}
                     </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between gap-1">
-                        <p className={`text-xs ${!n.read ? 'font-bold text-slate-900' : 'font-semibold text-slate-700'} truncate`}>
+                        <p className={`text-xs ${!n.read ? 'font-semibold text-slate-900' : 'font-medium text-slate-600'} truncate`}>
                           {n.title}
                         </p>
                         <span className="text-[10px] text-slate-400 flex-shrink-0">{n.time}</span>

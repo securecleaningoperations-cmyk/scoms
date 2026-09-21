@@ -22,7 +22,8 @@ import {
   Settings, Lock, Users2, Workflow, Plug,
   ChevronDown, ChevronRight, Shield,
   PanelLeftClose, PanelLeft, Filter, Check, Eye,
-  SlidersHorizontal, GripVertical
+  SlidersHorizontal, GripVertical, Crown, Hammer,
+  BadgeDollarSign, ShieldHalf, Landmark
 } from "lucide-react";
 
 // ── Role Presets & Specific Options ─────────────────────────────────────
@@ -31,7 +32,7 @@ interface RolePreset {
   id: ScomsRole;
   name: string;
   badge: string;
-  icon: string;
+  Icon: React.ElementType;
   color: string;
   description: string;
   quickLinks: { label: string; href: string }[];
@@ -42,7 +43,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "super_admin",
     name: "Super Admin (Owner)",
     badge: "Platform Master",
-    icon: "👑",
+    Icon: Crown,
     color: "bg-blue-600 text-white",
     description: "Full enterprise command over all 14 operational engines & security",
     quickLinks: [
@@ -55,7 +56,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "operations_manager",
     name: "Operations Manager",
     badge: "Field Operations",
-    icon: "🛠️",
+    Icon: Hammer,
     color: "bg-indigo-600 text-white",
     description: "Dispatch, scheduling, GPS telemetry, jobs & QA audits",
     quickLinks: [
@@ -68,7 +69,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "field_employee",
     name: "Field Cleaner / Technician",
     badge: "Field Crew",
-    icon: "🧹",
+    Icon: Briefcase,
     color: "bg-emerald-600 text-white",
     description: "Work orders, mobile checklists, training courses & SOPs",
     quickLinks: [
@@ -82,7 +83,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "hr_manager",
     name: "HR & Workforce Director",
     badge: "Human Resources",
-    icon: "👥",
+    Icon: Users,
     color: "bg-purple-600 text-white",
     description: "Staff directory, recruiting pipeline, payroll runs & OSHA training",
     quickLinks: [
@@ -95,7 +96,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "finance_admin",
     name: "Finance & Accounting",
     badge: "CFO / Accounting",
-    icon: "💰",
+    Icon: BadgeDollarSign,
     color: "bg-amber-600 text-white",
     description: "General ledger, customer invoicing, job costing, and bid calculator",
     quickLinks: [
@@ -108,7 +109,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "quality_manager",
     name: "Quality & Compliance Auditor",
     badge: "Audits & QA",
-    icon: "🛡️",
+    Icon: ShieldHalf,
     color: "bg-teal-600 text-white",
     description: "Facility hygiene scores, CAPA nonconformance & ISO standards",
     quickLinks: [
@@ -121,7 +122,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "sales_manager",
     name: "Commercial Sales Director",
     badge: "Sales & CRM",
-    icon: "💼",
+    Icon: Handshake,
     color: "bg-rose-600 text-white",
     description: "Commercial pipeline, 3-tier proposals, facility walkthroughs & contracts",
     quickLinks: [
@@ -134,7 +135,7 @@ const ROLE_PRESETS: RolePreset[] = [
     id: "franchise_admin",
     name: "Franchise Administrator",
     badge: "Franchise Hub",
-    icon: "🌐",
+    Icon: Globe,
     color: "bg-cyan-600 text-white",
     description: "Multi-location hubs, brand livery compliance & royalty settlement",
     quickLinks: [
@@ -482,7 +483,9 @@ export function Sidebar({
               title="Switch role view to see specific options for other roles"
             >
               <div className="flex items-center gap-2 min-w-0">
-                <span className="text-base shrink-0">{currentRolePreset.icon}</span>
+                <div className={clsx("w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0", currentRolePreset.color)}>
+                  <currentRolePreset.Icon className="w-3.5 h-3.5" />
+                </div>
                 <div className="min-w-0">
                   <p className="text-xs font-bold text-slate-800 truncate">
                     {currentRolePreset.name}
@@ -519,7 +522,9 @@ export function Sidebar({
                         : "hover:bg-slate-50 text-slate-700"
                     )}
                   >
-                    <span className="text-lg shrink-0 mt-0.5">{rp.icon}</span>
+                    <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", rp.color)}>
+                      <rp.Icon className="w-4 h-4" />
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-bold truncate">{rp.name}</span>

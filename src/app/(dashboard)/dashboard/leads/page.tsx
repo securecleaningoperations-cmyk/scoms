@@ -51,6 +51,17 @@ export default function LeadsPage() {
   const fetchLeads = useCallback(async () => {
     setLoading(true);
     try {
+      // Primary: server API route (bypasses RLS)
+      try {
+        const res = await fetch("/api/leads");
+        const json = await res.json();
+        if (json.data) {
+          setLeads(json.data);
+          setLoading(false);
+          return;
+        }
+      } catch {}
+      // Fallback: direct Supabase
       const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
       if (data) setLeads(data);
     } catch (err) {
@@ -72,21 +83,40 @@ export default function LeadsPage() {
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
+
+    const payload = {
+      company_name: form.company_name,
+      contact_name: form.contact_name,
+      email: form.email,
+      phone: form.phone,
+      estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
+      source: form.source,
+      status: "Prospect",
+      notes: form.notes,
+    };
+
     try {
-      const { error } = await supabase.from("leads").insert([{
-        company_name: form.company_name,
-        contact_name: form.contact_name,
-        email: form.email,
-        phone: form.phone,
-        estimated_value: form.estimated_value ? Number(form.estimated_value) : null,
-        source: form.source,
-        status: "Prospect",
-        notes: form.notes,
-      }]);
-      if (error) throw error;
-      setShowAddModal(false);
-      setForm({ company_name: "", contact_name: "", email: "", phone: "", estimated_value: "", source: "inbound", notes: "" });
-      fetchLeads();
+      let success = false;
+      try {
+        const res = await fetch("/api/leads", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (res.ok && json.data) success = true;
+        else if (json.error) throw new Error(json.error);
+      } catch {
+        const { error } = await supabase.from("leads").insert([payload]);
+        if (error) throw error;
+        success = true;
+      }
+
+      if (success) {
+        setShowAddModal(false);
+        setForm({ company_name: "", contact_name: "", email: "", phone: "", estimated_value: "", source: "inbound", notes: "" });
+        fetchLeads();
+      }
     } catch (err: any) {
       alert(err.message || "Failed to create lead");
     } finally {

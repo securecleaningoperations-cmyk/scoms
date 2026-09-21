@@ -24,7 +24,7 @@ interface MeetingRecord {
 const DEFAULT_MEETINGS: MeetingRecord[] = [
   {
     id: 'meet-all-hands',
-    title: '🏢 SCOMS Company-Wide All-Hands Hall (Open to All Roles)',
+    title: 'SCOMS Company-Wide All-Hands Hall (Open to All Roles)',
     scheduled_at: new Date().toISOString(),
     meet_url: 'SCOMS-All-Hands-Company-Wide',
     type: 'meeting',

@@ -312,7 +312,6 @@ export function QuickCreateModal({
         if (!invoiceForm.amount || Number(invoiceForm.amount) <= 0) {
           throw new Error("Please enter a valid invoice amount.");
         }
-        const selectedClient = clients.find((c) => c.id === invoiceForm.client_id);
         const invoiceNum = `INV-${Date.now().toString().slice(-6)}`;
         const { data, error } = await supabase
           .from("invoices")
@@ -320,7 +319,7 @@ export function QuickCreateModal({
             {
               invoice_id: invoiceNum,
               client_id: invoiceForm.client_id || null,
-              client: selectedClient?.name || "Commercial Client",
+              // DO NOT include 'client' text column — table uses client_id FK
               amount: Number(invoiceForm.amount),
               due_date: invoiceForm.due_date || null,
               status: "pending",

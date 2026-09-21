@@ -66,23 +66,38 @@ export default function JobsPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const [
-        { data: jobsData },
-        { data: clientsData },
-      ] = await Promise.all([
-        supabase.from("jobs").select("*").order("created_at", { ascending: false }),
-        supabase.from("clients").select("id, name"),
-      ]);
+      // Primary: use server API route (bypasses RLS)
+      let jobsData: Job[] = [];
+      let clientsData: { id: string; name: string }[] = [];
 
-      // Try fetching employees via API
+      try {
+        const [jobsRes, clientsRes] = await Promise.all([
+          fetch("/api/jobs"),
+          fetch("/api/clients"),
+        ]);
+        const jobsJson = await jobsRes.json();
+        const clientsJson = await clientsRes.json();
+        if (jobsJson.data) jobsData = jobsJson.data;
+        if (clientsJson.data) clientsData = clientsJson.data;
+      } catch {
+        // Fallback: direct Supabase query
+        const [j, c] = await Promise.all([
+          supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+          supabase.from("clients").select("id, name"),
+        ]);
+        if (j.data) jobsData = j.data;
+        if (c.data) clientsData = c.data;
+      }
+
+      setJobs(jobsData);
+      setClients(clientsData);
+
+      // Employees via HR API
       try {
         const empRes = await fetch("/api/hr/employees");
         const empJson = await empRes.json();
         if (empJson.data) setEmployees(empJson.data);
       } catch {}
-
-      if (jobsData) setJobs(jobsData);
-      if (clientsData) setClients(clientsData);
     } catch (err) {
       console.error("Error fetching jobs:", err);
     } finally {
@@ -114,16 +129,33 @@ export default function JobsPage() {
     };
 
     try {
-      const { error } = await supabase.from("jobs").insert([payload]);
-      if (error) throw error;
+      let success = false;
+      // Try API route first
+      try {
+        const res = await fetch("/api/jobs", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const json = await res.json();
+        if (res.ok && json.data) success = true;
+        else if (json.error) throw new Error(json.error);
+      } catch {
+        // Fallback to direct supabase
+        const { error } = await supabase.from("jobs").insert([payload]);
+        if (error) throw error;
+        success = true;
+      }
 
-      setShowAddModal(false);
-      setForm({
-        client_id: "", service_type: "Standard Commercial Cleaning",
-        assigned_to: "", job_date: new Date().toISOString().split("T")[0],
-        location: "", notes: "",
-      });
-      fetchData();
+      if (success) {
+        setShowAddModal(false);
+        setForm({
+          client_id: "", service_type: "Standard Commercial Cleaning",
+          assigned_to: "", job_date: new Date().toISOString().split("T")[0],
+          location: "", notes: "",
+        });
+        fetchData();
+      }
     } catch (err: any) {
       alert(err.message || "Failed to create job");
     } finally {
@@ -139,8 +171,16 @@ export default function JobsPage() {
     }
 
     try {
-      const { error } = await supabase.from("jobs").update({ status: newStatus }).eq("id", jobId);
-      if (error) throw error;
+      const res = await fetch("/api/jobs", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: jobId, status: newStatus }),
+      });
+      if (!res.ok) {
+        // Fallback
+        const { error } = await supabase.from("jobs").update({ status: newStatus }).eq("id", jobId);
+        if (error) throw error;
+      }
       fetchData();
     } catch (err: any) {
       alert(err.message);
