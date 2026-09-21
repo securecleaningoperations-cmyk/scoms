@@ -70,6 +70,12 @@ export default function HRManagementPage() {
 
   useEffect(() => {
     fetchEmployees();
+
+    const handleEntityCreated = (e: any) => {
+      if (e.detail?.type === "employee") fetchEmployees();
+    };
+    window.addEventListener("scoms-entity-created", handleEntityCreated);
+    return () => window.removeEventListener("scoms-entity-created", handleEntityCreated);
   }, [fetchEmployees]);
 
   const handleAddEmployee = async (e: React.FormEvent) => {

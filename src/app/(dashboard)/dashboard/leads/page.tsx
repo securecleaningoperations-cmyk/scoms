@@ -60,7 +60,14 @@ export default function LeadsPage() {
     }
   }, []);
 
-  useEffect(() => { fetchLeads(); }, [fetchLeads]);
+  useEffect(() => {
+    fetchLeads();
+    const handleEntityCreated = (e: any) => {
+      if (e.detail?.type === "lead") fetchLeads();
+    };
+    window.addEventListener("scoms-entity-created", handleEntityCreated);
+    return () => window.removeEventListener("scoms-entity-created", handleEntityCreated);
+  }, [fetchLeads]);
 
   const handleAddLead = async (e: React.FormEvent) => {
     e.preventDefault();

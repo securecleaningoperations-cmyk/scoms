@@ -237,6 +237,7 @@ export function Sidebar({
   return (
     <aside
       className={clsx(
+        "select-none",
         isMobile
           ? "flex flex-col h-full w-full bg-surface"
           : "hidden md:flex flex-col h-screen border-r border-border bg-surface flex-shrink-0 transition-all duration-200 z-20",

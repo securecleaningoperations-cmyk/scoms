@@ -92,6 +92,11 @@ export default function JobsPage() {
 
   useEffect(() => {
     fetchData();
+    const handleEntityCreated = (e: any) => {
+      if (e.detail?.type === "job") fetchData();
+    };
+    window.addEventListener("scoms-entity-created", handleEntityCreated);
+    return () => window.removeEventListener("scoms-entity-created", handleEntityCreated);
   }, [fetchData]);
 
   const handleAddJob = async (e: React.FormEvent) => {

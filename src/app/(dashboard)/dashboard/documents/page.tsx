@@ -137,6 +137,70 @@ export default function DocumentsPage() {
     a.click();
   };
 
+  const handleGenerateCoverSheet = (doc: any) => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    printWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>SCOMS Official Cover Sheet - ${doc.name}</title>
+          <style>
+            body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; margin: 40px; color: #0f172a; line-height: 1.5; }
+            .header { border-bottom: 2px solid #2563eb; padding-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-start; }
+            .logo { font-size: 22px; font-weight: 800; color: #1e3a8a; letter-spacing: -0.02em; }
+            .meta { margin-top: 30px; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; background: #f8fafc; }
+            .field { margin-bottom: 14px; }
+            .label { font-size: 11px; font-weight: 700; text-transform: uppercase; color: #64748b; letter-spacing: 0.05em; }
+            .val { font-size: 15px; font-weight: 600; margin-top: 2px; color: #0f172a; }
+            .footer { margin-top: 50px; font-size: 11px; color: #64748b; border-top: 1px solid #e2e8f0; padding-top: 16px; line-height: 1.6; }
+            .badge { display: inline-block; background: #dbeafe; color: #1e40af; padding: 4px 12px; border-radius: 9999px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+            .sig-box { margin-top: 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px; }
+            .sig-line { border-top: 1px dashed #94a3b8; padding-top: 8px; font-size: 12px; color: #64748b; }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div>
+              <div class="logo">SECURE CLEANING OPERATIONS INC.</div>
+              <div style="font-size: 12px; color: #64748b; margin-top: 4px;">SCOMS v6.1 &bull; Official Digital Records Office</div>
+              <div style="font-size: 11px; color: #94a3b8;">Permanent Enterprise Digital Filing Cabinet</div>
+            </div>
+            <div class="badge">${(doc.category || 'General').toUpperCase()} RECORD</div>
+          </div>
+
+          <div style="margin-top: 30px;">
+            <h1 style="font-size: 24px; margin: 0 0 6px 0; color: #0f172a;">${doc.name}</h1>
+            <p style="color: #64748b; font-size: 13px; margin: 0;">Permanent Record ID: <code style="font-family: monospace; background: #e2e8f0; padding: 2px 6px; rounded: 4px;">${doc.id}</code></p>
+          </div>
+
+          <div class="meta">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+              <div class="field"><div class="label">Document Category</div><div class="val" style="text-transform: capitalize;">${doc.category} Records</div></div>
+              <div class="field"><div class="label">Filing Status</div><div class="val" style="text-transform: capitalize;">${doc.status || 'Active'}</div></div>
+              <div class="field"><div class="label">Revision Number</div><div class="val">Version ${doc.version || '1'}</div></div>
+              <div class="field"><div class="label">Legal Retention Schedule</div><div class="val">${doc.retention_period_years || 5} Years</div></div>
+              <div class="field"><div class="label">Filing Date &amp; Time</div><div class="val">${new Date(doc.created_at || Date.now()).toLocaleString()}</div></div>
+              <div class="field"><div class="label">Authenticity Verification</div><div class="val">Original Document Preserved Unaltered</div></div>
+            </div>
+          </div>
+
+          <div class="sig-box">
+            <div class="sig-line">Authorized Custodian / Executive Signature</div>
+            <div class="sig-line">Date &amp; Timestamp Verification</div>
+          </div>
+
+          <div class="footer">
+            <strong>CONFIDENTIALITY &amp; LEGAL NOTICE:</strong> This official cover sheet certifies that the attached document is cataloged within the permanent corporate records system of Secure Cleaning Operations Inc. In accordance with legal preservation protocols, third-party source files remain unmodified.<br /><br />
+            Secure Cleaning Operations Inc. &bull; Hours: Monday – Friday, 10:00 AM – 5:30 PM &bull; Corporate Headquarters, Dallas-Fort Worth, TX
+          </div>
+          <script>window.print();</script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
+
   const categories = ['all', 'employee', 'client', 'vendor', 'corporate', 'financial', 'operations'];
   const filtered = documents.filter(d =>
     (d.name || '').toLowerCase().includes(search.toLowerCase()) &&
@@ -255,9 +319,14 @@ export default function DocumentsPage() {
             ) : (
               <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-800 mb-3">File not stored in Supabase Storage. Re-upload to enable direct viewing.</div>
             )}
-            <button onClick={() => handleDownload(viewingDoc)} className="w-full border border-slate-200 text-slate-700 py-2.5 rounded-xl font-semibold hover:bg-slate-50 flex items-center justify-center gap-2">
-              <Download className="w-4 h-4" /> Download
-            </button>
+            <div className="flex gap-2">
+              <button onClick={() => handleGenerateCoverSheet(viewingDoc)} className="flex-1 bg-slate-900 text-white py-2.5 rounded-xl font-semibold hover:bg-slate-800 flex items-center justify-center gap-2 text-xs">
+                <FileText className="w-4 h-4 text-blue-400" /> Print Official Cover Sheet
+              </button>
+              <button onClick={() => handleDownload(viewingDoc)} className="flex-1 border border-slate-200 text-slate-700 py-2.5 rounded-xl font-semibold hover:bg-slate-50 flex items-center justify-center gap-2 text-xs">
+                <Download className="w-4 h-4" /> Download Receipt
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -59,6 +59,11 @@ export default function ClientsPage() {
 
   useEffect(() => {
     fetchClients();
+    const handleEntityCreated = (e: any) => {
+      if (e.detail?.type === "client") fetchClients();
+    };
+    window.addEventListener("scoms-entity-created", handleEntityCreated);
+    return () => window.removeEventListener("scoms-entity-created", handleEntityCreated);
   }, [fetchClients]);
 
   const handleAddClient = async (e: React.FormEvent) => {

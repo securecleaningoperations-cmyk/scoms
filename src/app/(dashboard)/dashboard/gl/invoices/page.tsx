@@ -17,44 +17,16 @@ export default function InvoicesPage() {
     fetchClients();
   }, []);
 
-  const DEFAULT_INVOICES = [
-    {
-      id: 'inv-001',
-      invoice_number: 'INV-2024-081',
-      client_id: '3feb43a1-4b35-4869-851c-47977e4635be',
-      amount: 12450.00,
-      tax: 996.00,
-      total_amount: 13446.00,
-      status: 'paid',
-      issue_date: '2024-03-01',
-      due_date: '2024-03-31',
-      clients: { name: 'Apex Logistics Tech Campus' }
-    },
-    {
-      id: 'inv-002',
-      invoice_number: 'INV-2024-082',
-      client_id: '3feb43a1-4b35-4869-851c-47977e4635be',
-      amount: 18200.00,
-      tax: 1456.00,
-      total_amount: 19656.00,
-      status: 'paid',
-      issue_date: '2024-03-05',
-      due_date: '2024-04-05',
-      clients: { name: 'Metro Healthcare Network' }
-    },
-    {
-      id: 'inv-003',
-      invoice_number: 'INV-2024-083',
-      client_id: '3feb43a1-4b35-4869-851c-47977e4635be',
-      amount: 8950.00,
-      tax: 716.00,
-      total_amount: 9666.00,
-      status: 'sent',
-      issue_date: '2024-03-15',
-      due_date: '2024-04-15',
-      clients: { name: 'North Texas Freight & Logistics' }
-    }
-  ];
+  useEffect(() => { 
+    fetchInvoices(); 
+    fetchClients();
+
+    const handleEntityCreated = (e: any) => {
+      if (e.detail?.type === "invoice") fetchInvoices();
+    };
+    window.addEventListener("scoms-entity-created", handleEntityCreated);
+    return () => window.removeEventListener("scoms-entity-created", handleEntityCreated);
+  }, []);
 
   const fetchInvoices = async () => {
     setLoading(true);
@@ -74,18 +46,18 @@ export default function InvoicesPage() {
 
       if (invData && invData.length > 0) {
         const clientsMap = new Map((clientsData || []).map((c: any) => [c.id, c.name]));
-        const formatted = invData.map((inv: any, idx: number) => ({
+        const formatted = invData.map((inv: any) => ({
           ...inv,
-          clients: {
-            name: clientsMap.get(inv.client_id) || DEFAULT_INVOICES[idx % DEFAULT_INVOICES.length].clients.name
-          }
+          invoice_number: inv.invoice_id || inv.invoice_number || `INV-${inv.id?.slice(0, 6)?.toUpperCase()}`,
+          client_name: clientsMap.get(inv.client_id) || inv.client || 'Commercial Client',
+          total_amount: Number(inv.amount || inv.total || 0),
         }));
         setInvoices(formatted);
       } else {
-        setInvoices(DEFAULT_INVOICES);
+        setInvoices([]);
       }
     } catch {
-      setInvoices(DEFAULT_INVOICES);
+      setInvoices([]);
     } finally {
       setLoading(false);
     }
@@ -101,17 +73,17 @@ export default function InvoicesPage() {
     setIsAdding(true);
     
     const amount = parseFloat(form.amount) || 0;
-    const tax = amount * 0.08;
-    const total = amount + tax;
+    const selectedClient = clients.find(c => c.id === form.client_id);
+    const invoiceNum = `INV-${Date.now().toString().slice(-6)}`;
 
     const payload = {
-      invoice_number: `INV-${crypto.randomUUID().slice(0, 6).toUpperCase()}`,
-      client_id: form.client_id || null, // Ensure a real client ID is selected in a full implementation
+      invoice_id: invoiceNum,
+      client: selectedClient?.name || 'Commercial Client',
+      client_id: form.client_id || null,
       amount: amount,
-      tax: tax,
-      total: total,
-      due_date: form.due_date,
-      status: form.status
+      due_date: form.due_date || null,
+      status: form.status || 'pending',
+      issue_date: new Date().toISOString().split('T')[0],
     };
     
     const { error } = await supabase.from('invoices').insert([payload]);
@@ -119,6 +91,8 @@ export default function InvoicesPage() {
       fetchInvoices();
       setShowModal(false);
       setForm({ client_id: '', amount: '', due_date: '', status: 'pending' });
+    } else {
+      alert("Failed to create invoice: " + error.message);
     }
     setIsAdding(false);
   };
@@ -155,9 +129,9 @@ export default function InvoicesPage() {
               ) : invoices.map(i => (
                 <tr key={i.id} className="hover:bg-cloud/50 transition-colors">
                   <td className="p-4 pl-6 font-mono text-sm text-mist-gray">{i.invoice_number}</td>
-                  <td className="p-4 font-semibold text-ink-navy">{i.clients?.name || 'Unassigned'}</td>
-                  <td className="p-4 font-bold text-emerald-600">${(i.total || 0).toLocaleString()}</td>
-                  <td className="p-4 text-sm text-slate-gray">{new Date(i.due_date).toLocaleDateString()}</td>
+                  <td className="p-4 font-semibold text-ink-navy">{i.client_name || i.clients?.name || 'Unassigned'}</td>
+                  <td className="p-4 font-bold text-emerald-600">${(i.total_amount || 0).toLocaleString()}</td>
+                  <td className="p-4 text-sm text-slate-gray">{i.due_date ? new Date(i.due_date).toLocaleDateString() : '—'}</td>
                   <td className="p-4 capitalize"><span className={`px-2 py-1 rounded text-xs font-semibold ${i.status === 'paid' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>{i.status}</span></td>
                 </tr>
               ))}

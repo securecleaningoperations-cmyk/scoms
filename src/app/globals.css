@@ -79,6 +79,17 @@
   --color-neutral-800: #1e293b;
   --color-neutral-900: #0f172a;
 
+  /* ── Legacy Design System Tokens (cal- / SCOMS enterprise compatibility) ─── */
+  --color-signal-blue: #2563eb;
+  --color-ink-navy: #0f172a;
+  --color-slate-gray: #475569;
+  --color-mist-gray: #94a3b8;
+  --color-pebble: #f1f5f9;
+  --color-cloud: #f8fafc;
+  --color-paper: #ffffff;
+  --color-hairline: #e2e8f0;
+  --font-display: 'Inter', 'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
   /* ── Typography ───────────────────────────────────────────────────────── */
   --font-sans: 'Inter', 'Manrope', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -144,7 +155,7 @@ body {
   outline-offset: 2px;
 }
 
-/* ── Panel (replaces cal-card) ──────────────────────────────────────────── */
+/* ── Panels & Cards ─────────────────────────────────────────────────────── */
 
 .scoms-panel {
   background: var(--color-surface);
@@ -160,6 +171,83 @@ body {
   box-shadow: var(--shadow-xs);
   overflow: hidden;
 }
+
+/* ── Legacy cal- Design System Tokens Compatibility ────────────────────── */
+
+.cal-card {
+  background-color: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.875rem; /* 14px */
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.03);
+}
+
+.cal-card-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.cal-card-hover:hover {
+  box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.07), 0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  border-color: #cbd5e1;
+  transform: translateY(-2px);
+}
+
+.cal-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 9999px;
+}
+
+.cal-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: 1px solid transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+}
+.cal-btn-primary:hover {
+  background-color: #1d4ed8;
+}
+
+.cal-btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.625rem;
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+.cal-btn-secondary:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Explicit fallback utilities */
+.border-hairline { border-color: #e2e8f0 !important; }
+.bg-cloud { background-color: #f8fafc !important; }
+.bg-pebble { background-color: #f1f5f9 !important; }
+.bg-paper { background-color: #ffffff !important; }
+.text-ink-navy { color: #0f172a !important; }
+.text-slate-gray { color: #475569 !important; }
+.text-mist-gray { color: #94a3b8 !important; }
+.text-signal-blue { color: #2563eb !important; }
+.bg-signal-blue { background-color: #2563eb !important; }
+.border-signal-blue { border-color: #2563eb !important; }
 
 /* ── Status Badge System ────────────────────────────────────────────────── */
 

@@ -49,18 +49,6 @@ interface EmployeeDetail {
   [key: string]: any;
 }
 
-const MOCK_TRAININGS = [
-  { id: "t1", title: "OSHA Bloodborne Pathogens & PPE Protocol", status: "completed", score: 98, date: "2026-01-15" },
-  { id: "t2", title: "Hazard Communication & Chemical SDS Handling", status: "completed", score: 95, date: "2026-02-01" },
-  { id: "t3", title: "Cleanroom Terminal Sanitation ISO Level 5", status: "completed", score: 100, date: "2026-02-18" },
-  { id: "t4", title: "Slip, Trip, and Fall Hazard Mitigation", status: "in_progress", score: null, date: "Due in 14 days" },
-];
-
-const MOCK_CERTS = [
-  { id: "c1", name: "OSHA 10-Hour General Industry Certification", issuer: "OSHA / Safety Council", expires: "2028-01-15", status: "Active" },
-  { id: "c2", name: "Biohazard Containment & Terminal Disinfection", issuer: "Clean Standards Institute", expires: "2027-06-30", status: "Active" },
-];
-
 export default function Employee360Page() {
   const params = useParams();
   const router = useRouter();
@@ -68,8 +56,8 @@ export default function Employee360Page() {
 
   const [employee, setEmployee] = useState<EmployeeDetail | null>(null);
   const [assignedJobs, setAssignedJobs] = useState<any[]>([]);
-  const [trainings, setTrainings] = useState<any[]>(MOCK_TRAININGS);
-  const [certifications, setCertifications] = useState<any[]>(MOCK_CERTS);
+  const [trainings, setTrainings] = useState<any[]>([]);
+  const [certifications, setCertifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("profile");
 
@@ -86,16 +74,34 @@ export default function Employee360Page() {
       if (empErr) throw empErr;
       setEmployee(emp);
 
-      // Query jobs assigned to this employee's name or id
+      // Query jobs, trainings, and certifications for this employee
       const fullName = `${emp.first_name} ${emp.last_name}`;
-      const { data: jobs } = await supabase
-        .from("jobs")
-        .select("*")
-        .or(`assigned.eq.${fullName},assigned.eq.${emp.first_name}`)
-        .order("job_date", { ascending: false })
-        .limit(20);
+      const [
+        { data: jobs },
+        { data: trData },
+        { data: certData }
+      ] = await Promise.all([
+        supabase
+          .from("jobs")
+          .select("*")
+          .or(`assigned.eq.${fullName},assigned.eq.${emp.first_name}`)
+          .order("created_at", { ascending: false })
+          .limit(20),
+        supabase
+          .from("trainings")
+          .select("*")
+          .eq("employee_id", id)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("certifications")
+          .select("*")
+          .eq("employee_id", id)
+          .order("created_at", { ascending: false }),
+      ]);
 
       setAssignedJobs(jobs || []);
+      setTrainings(trData || []);
+      setCertifications(certData || []);
     } catch (err) {
       console.error("Error loading employee 360:", err);
     } finally {
