@@ -1,13 +1,16 @@
 import type { Metadata } from "next";
-import { Manrope } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
-import { PWAListener } from "@/components/PWAListener";
 
-const manrope = Manrope({ subsets: ["latin"], weight: ['400', '500', '600', '700'] });
+const inter = Inter({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  display: "swap",
+});
 
 export const metadata: Metadata = {
-  title: "SCOMS v4.0 | Enterprise Platform",
-  description: "Secure Cleaning Operations Management System",
+  title: "SCOMS | Secure Cleaning Operations Management System",
+  description: "Enterprise operations management platform for secure cleaning operations — workforce, scheduling, quality, finance, compliance.",
 };
 
 export default function RootLayout({
@@ -17,8 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`${manrope.className} bg-cloud text-ink-navy antialiased min-h-screen`}>
-        <PWAListener />
+      <body className={`${inter.className} antialiased min-h-screen`}>
         {children}
       </body>
     </html>

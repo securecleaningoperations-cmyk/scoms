@@ -1,87 +1,351 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
-import { MobileSidebar } from "@/components/MobileSidebar";
-import { NotificationCenter } from "@/components/NotificationCenter";
-import { useEffect, useState } from "react";
+import { AuthProvider, useAuth } from "@/lib/auth/AuthProvider";
 import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabase";
-import { 
-  Menu, Shield, Smartphone, ExternalLink, ChevronDown, 
-  UserCheck, Briefcase, DollarSign, Calendar, Users
+import { useEffect, useState, useCallback } from "react";
+import {
+  Menu, Search, Plus, Bell, HelpCircle,
+  User, LogOut, ChevronDown, X, Command, Shield,
 } from "lucide-react";
 import Link from "next/link";
+import clsx from "clsx";
 
-const ROLES = [
-  { id: "super_admin", label: "Super Admin (Full Access)" },
-  { id: "executive", label: "Executive / CFO" },
-  { id: "operations_manager", label: "Operations Manager" },
-  { id: "supervisor", label: "Field Supervisor" },
-  { id: "finance_admin", label: "Finance & Accounting" },
-  { id: "hr_manager", label: "HR & Workforce" },
-  { id: "compliance_officer", label: "Compliance & Safety" },
-  { id: "quality_manager", label: "Quality Assurance" },
-  { id: "franchise_admin", label: "Franchise Owner" },
-  { id: "vendor_manager", label: "Subcontractor / Vendor" },
-  { id: "field_employee", label: "Cleaning Specialist (Field App)" },
-  { id: "client_admin", label: "Client Portal User" }
+// ── Quick Create Items ─────────────────────────────────────────────────
+
+const QUICK_CREATE_ITEMS = [
+  { label: "New Client", href: "/dashboard/clients", icon: "🏢" },
+  { label: "New Lead", href: "/dashboard/leads", icon: "🎯" },
+  { label: "New Job", href: "/dashboard/jobs", icon: "📋" },
+  { label: "New Employee", href: "/dashboard/hr", icon: "👤" },
+  { label: "New Invoice", href: "/dashboard/gl/invoices", icon: "💰" },
+  { label: "New Incident", href: "/dashboard/incidents", icon: "⚠️" },
+  { label: "New Document", href: "/dashboard/documents", icon: "📄" },
 ];
 
-export default function DashboardLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+// ── Search Modal (CMD+K) ───────────────────────────────────────────────
+
+function CommandPalette({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [query, setQuery] = useState("");
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [userEmail, setUserEmail] = useState('');
-  const [userRole, setUserRole] = useState('super_admin');
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [roleDropdownOpen, setRoleDropdownOpen] = useState(false);
 
   useEffect(() => {
-    const checkAuth = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
-        router.push("/login");
-      } else {
-        setIsAuthenticated(true);
-        setUserEmail(session.user.email ?? '');
+    if (open) {
+      setQuery("");
+    }
+  }, [open]);
 
-        // Fetch user profile role or metadata
-        let role = session.user.user_metadata?.role;
-        if (!role) {
-          const { data } = await supabase.from('users').select('role').eq('id', session.user.id).single();
-          role = data?.role;
-        }
-        if (role) {
-          setUserRole(role.toLowerCase().replace(/\s+/g, '_'));
-        }
+  const SEARCH_SECTIONS = [
+    {
+      title: "Pages",
+      items: [
+        { label: "Executive Dashboard", href: "/dashboard" },
+        { label: "Operations", href: "/dashboard/operations" },
+        { label: "Employees", href: "/dashboard/hr" },
+        { label: "Clients", href: "/dashboard/clients" },
+        { label: "Jobs", href: "/dashboard/jobs" },
+        { label: "Leads", href: "/dashboard/leads" },
+        { label: "Schedule", href: "/dashboard/scheduling" },
+        { label: "General Ledger", href: "/dashboard/gl" },
+        { label: "Invoices", href: "/dashboard/gl/invoices" },
+        { label: "Quality", href: "/dashboard/quality" },
+        { label: "CAPA", href: "/dashboard/quality/capa" },
+        { label: "Documents", href: "/dashboard/documents" },
+        { label: "Academy", href: "/dashboard/academy" },
+        { label: "Communications", href: "/dashboard/communications" },
+        { label: "AI Intelligence", href: "/dashboard/intelligence" },
+        { label: "Phone Agent", href: "/dashboard/phone-agent" },
+        { label: "Settings", href: "/dashboard/settings" },
+        { label: "Security", href: "/dashboard/security" },
+        { label: "Audit Logs", href: "/dashboard/security/audit" },
+        { label: "Franchise", href: "/dashboard/franchise" },
+        { label: "Procurement", href: "/dashboard/procurement" },
+        { label: "Incidents", href: "/dashboard/incidents" },
+      ],
+    },
+  ];
+
+  const filteredSections = SEARCH_SECTIONS.map((s) => ({
+    ...s,
+    items: s.items.filter((i) =>
+      i.label.toLowerCase().includes(query.toLowerCase())
+    ),
+  })).filter((s) => s.items.length > 0);
+
+  if (!open) return null;
+
+  return (
+    <div className="overlay-backdrop" onClick={onClose}>
+      <div
+        className="bg-surface border border-border rounded-xl shadow-overlay w-full max-w-lg flex flex-col max-h-[70vh] overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Search input */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b border-border">
+          <Search className="w-4 h-4 text-text-muted flex-shrink-0" />
+          <input
+            autoFocus
+            type="text"
+            placeholder="Search pages, entities, commands..."
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="flex-1 bg-transparent text-body text-text-primary outline-none placeholder:text-text-muted"
+          />
+          <kbd className="text-caption text-text-muted bg-bg-inset rounded px-1.5 py-0.5 border border-border-light font-mono">
+            ESC
+          </kbd>
+        </div>
+
+        {/* Results */}
+        <div className="overflow-y-auto flex-1 py-2">
+          {filteredSections.length === 0 ? (
+            <div className="px-4 py-6 text-center text-body-sm text-text-muted">
+              No results found for &quot;{query}&quot;
+            </div>
+          ) : (
+            filteredSections.map((section) => (
+              <div key={section.title}>
+                <p className="px-4 py-1 text-caption text-text-muted font-medium uppercase tracking-wider">
+                  {section.title}
+                </p>
+                {section.items.map((item) => (
+                  <button
+                    key={item.href}
+                    onClick={() => {
+                      router.push(item.href);
+                      onClose();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-2 text-body-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors text-left"
+                  >
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Quick Create Dropdown ──────────────────────────────────────────────
+
+function QuickCreateMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const router = useRouter();
+
+  if (!open) return null;
+
+  return (
+    <>
+      <div className="fixed inset-0 z-40" onClick={onClose} />
+      <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-50 w-56 py-1">
+        <p className="px-3 py-1.5 text-caption text-text-muted font-medium uppercase tracking-wider border-b border-border-light mb-1">
+          Quick Create
+        </p>
+        {QUICK_CREATE_ITEMS.map((item) => (
+          <button
+            key={item.label}
+            onClick={() => {
+              router.push(item.href);
+              onClose();
+            }}
+            className="w-full flex items-center gap-2.5 px-3 py-2 text-body-sm text-text-secondary hover:bg-surface-hover hover:text-text-primary transition-colors text-left"
+          >
+            <span className="text-sm">{item.icon}</span>
+            <span>{item.label}</span>
+          </button>
+        ))}
+      </div>
+    </>
+  );
+}
+
+// ── Notification Bell ──────────────────────────────────────────────────
+
+function NotificationBell() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="relative p-2 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+        aria-label="Notifications"
+      >
+        <Bell className="w-4 h-4" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-50 w-80">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-body-sm font-medium text-text-primary">Notifications</h3>
+              <button className="text-caption text-text-link hover:underline">Mark all read</button>
+            </div>
+            <div className="py-6 text-center text-body-sm text-text-muted">
+              <Bell className="w-6 h-6 mx-auto mb-2 opacity-30" />
+              No new notifications
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── User Menu ──────────────────────────────────────────────────────────
+
+function UserMenu() {
+  const { user, signOut } = useAuth();
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await signOut();
+    router.push("/login");
+  };
+
+  const initials = user
+    ? `${user.firstName?.charAt(0) || ""}${user.lastName?.charAt(0) || user.email.charAt(0)}`.toUpperCase()
+    : "U";
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-2 pl-1 pr-2 py-1 rounded-md hover:bg-surface-hover transition-colors"
+      >
+        <div className="w-7 h-7 rounded-md bg-primary-600 flex items-center justify-center text-white text-caption font-semibold">
+          {initials}
+        </div>
+        <ChevronDown className="w-3 h-3 text-text-muted" />
+      </button>
+
+      {open && (
+        <>
+          <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-full mt-1 bg-surface border border-border rounded-lg shadow-lg z-50 w-56 py-1">
+            {/* User Info */}
+            <div className="px-3 py-2 border-b border-border-light">
+              <p className="text-body-sm font-medium text-text-primary truncate">
+                {user?.firstName ? `${user.firstName} ${user.lastName}` : user?.email}
+              </p>
+              <p className="text-caption text-text-muted capitalize">{user?.role?.replace(/_/g, " ")}</p>
+            </div>
+
+            {/* Links */}
+            <div className="py-1">
+              <Link
+                href="/employee/dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-body-sm text-text-secondary hover:bg-surface-hover transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <User className="w-3.5 h-3.5" />
+                Field Mobile App
+              </Link>
+              <Link
+                href="/portal/dashboard"
+                className="flex items-center gap-2 px-3 py-2 text-body-sm text-text-secondary hover:bg-surface-hover transition-colors"
+                onClick={() => setOpen(false)}
+              >
+                <User className="w-3.5 h-3.5" />
+                Client Portal
+              </Link>
+            </div>
+
+            <div className="border-t border-border-light py-1">
+              <button
+                onClick={handleSignOut}
+                className="flex items-center gap-2 px-3 py-2 text-body-sm text-danger-600 hover:bg-danger-50 transition-colors w-full text-left"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+                Sign Out
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+// ── Mobile Sidebar ─────────────────────────────────────────────────────
+
+function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
+  if (!open) return null;
+
+  return (
+    <div className="overlay-backdrop md:hidden animate-fade-in z-50" onClick={onClose}>
+      <div
+        className="fixed inset-y-0 left-0 w-[280px] bg-surface shadow-overlay flex flex-col animate-slide-in-left z-50"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between p-3.5 border-b border-border">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-lg bg-primary-600 flex items-center justify-center text-white">
+              <Shield className="w-4 h-4" />
+            </div>
+            <div>
+              <span className="font-bold text-text-primary text-body-sm block leading-tight">SCOMS</span>
+              <span className="text-[10px] text-text-muted">Enterprise Platform</span>
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+            aria-label="Close navigation"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          <Sidebar isMobile={true} onNavigate={onClose} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Inner Layout (needs auth context) ──────────────────────────────────
+
+function DashboardShell({ children }: { children: React.ReactNode }) {
+  const { isLoading, isAuthenticated } = useAuth();
+  const router = useRouter();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+
+  // CMD+K shortcut
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setSearchOpen((prev) => !prev);
       }
-      setLoading(false);
+      if (e.key === "Escape") {
+        setSearchOpen(false);
+        setQuickCreateOpen(false);
+      }
     };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
-    checkAuth();
+  // Redirect to login if not authenticated
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isLoading, isAuthenticated, router]);
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) {
-        router.push("/login");
-      } else {
-        setIsAuthenticated(true);
-        setUserEmail(session.user.email ?? '');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, [router]);
-
-  if (loading) {
+  if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50">
+      <div className="flex h-screen items-center justify-center bg-bg-primary">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Loading SCOMS...</p>
+          <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-caption font-medium text-text-muted uppercase tracking-wider">Loading SCOMS...</p>
         </div>
       </div>
     );
@@ -89,175 +353,87 @@ export default function DashboardLayout({
 
   if (!isAuthenticated) return null;
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-    router.push('/login');
-  };
-
-  const handleSwitchRole = (newRole: string) => {
-    setUserRole(newRole);
-    setRoleDropdownOpen(false);
-    if (newRole === 'field_employee') {
-      router.push('/employee/dashboard');
-    } else if (newRole === 'client_admin') {
-      router.push('/portal/dashboard');
-    } else if (newRole === 'executive') {
-      router.push('/dashboard/executive');
-    } else if (newRole === 'operations_manager') {
-      router.push('/dashboard/operations');
-    } else if (newRole === 'finance_admin') {
-      router.push('/dashboard/gl/accountant');
-    } else if (newRole === 'hr_manager') {
-      router.push('/dashboard/hr');
-    } else if (newRole === 'compliance_officer') {
-      router.push('/dashboard/security');
-    } else if (newRole === 'quality_manager') {
-      router.push('/dashboard/quality');
-    } else if (newRole === 'franchise_admin') {
-      router.push('/dashboard/franchise');
-    } else if (newRole === 'vendor_manager') {
-      router.push('/dashboard/subcontractors');
-    } else if (newRole === 'supervisor') {
-      router.push('/dashboard/scheduling');
-    } else {
-      router.push('/dashboard');
-    }
-  };
-
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50">
+    <div className="flex h-screen overflow-hidden bg-bg-primary">
       {/* Desktop Sidebar */}
       <Sidebar />
 
-      {/* Mobile Drawer */}
-      <MobileSidebar
-        isOpen={mobileOpen}
-        onClose={() => setMobileOpen(false)}
-        userRole={userRole}
-        userEmail={userEmail}
-      />
+      {/* Mobile Sidebar */}
+      <MobileNav open={mobileNavOpen} onClose={() => setMobileNavOpen(false)} />
 
+      {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top Header Bar */}
-        <header className="flex-shrink-0 h-14 bg-white border-b border-slate-200 flex items-center justify-between px-4 sm:px-6 gap-3 z-20 shadow-xs">
-          
-          {/* Left: Mobile Toggle & Brand */}
-          <div className="flex items-center gap-3">
+        <header className="flex-shrink-0 h-14 bg-surface/90 backdrop-blur-md border-b border-border flex items-center justify-between px-4 gap-3 z-20 sticky top-0">
+          {/* Left */}
+          <div className="flex items-center gap-2">
             <button
-              onClick={() => setMobileOpen(true)}
-              className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors"
-              aria-label="Open navigation menu"
+              onClick={() => setMobileNavOpen(true)}
+              className="md:hidden p-2 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+              aria-label="Open navigation"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            <div className="flex items-center gap-2 md:hidden">
-              <div className="w-7 h-7 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-                <Shield className="w-4 h-4" />
-              </div>
-              <span className="font-bold text-slate-900 text-sm tracking-tight">SCOMS 6.1</span>
-            </div>
-
-            {/* Quick Portals Links (Desktop) */}
-            <div className="hidden lg:flex items-center gap-2 pl-2">
-              <Link
-                href="/dashboard/communications/meetings"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-bold transition-colors border border-emerald-200/80 shadow-xs"
-                title="Join Company-Wide All-Hands Video Hall"
-              >
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                <span>Company All-Hands</span>
-              </Link>
-              <Link
-                href="/employee/dashboard"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-semibold transition-colors"
-                title="Open Mobile Field Cleaning App"
-              >
-                <Smartphone className="w-3.5 h-3.5" />
-                <span>Field Mobile App</span>
-              </Link>
-              <Link
-                href="/portal/dashboard"
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold transition-colors"
-                title="Open Customer Self-Service Portal"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                <span>Client Portal</span>
-              </Link>
-            </div>
+            {/* Global Search Trigger */}
+            <button
+              onClick={() => setSearchOpen(true)}
+              className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-md border border-border text-text-muted hover:border-border-strong hover:text-text-secondary transition-colors bg-bg-inset"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span className="text-body-sm">Search...</span>
+              <kbd className="text-caption bg-surface rounded px-1 py-0.5 border border-border-light font-mono ml-4">
+                ⌘K
+              </kbd>
+            </button>
           </div>
 
-          {/* Right: Role Switcher, Notifications, User Profile */}
-          <div className="flex items-center gap-2 sm:gap-3">
-            
-            {/* Dynamic Role Switcher Dropdown */}
+          {/* Right */}
+          <div className="flex items-center gap-1">
+            {/* Quick Create */}
             <div className="relative">
               <button
-                onClick={() => setRoleDropdownOpen(!roleDropdownOpen)}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-medium transition-colors border border-slate-200/60"
-                title="Switch role view"
+                onClick={() => setQuickCreateOpen(!quickCreateOpen)}
+                className="btn btn-primary btn-sm"
               >
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="capitalize font-semibold max-w-[110px] sm:max-w-none truncate">
-                  Role: {userRole.replace(/_/g, ' ')}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Create</span>
               </button>
-
-              {roleDropdownOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-white rounded-xl shadow-xl border border-slate-200 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
-                  <div className="px-3 py-2 border-b border-slate-100 text-[11px] font-bold uppercase text-slate-400 tracking-wider">
-                    Simulate / Test Role Access
-                  </div>
-                  <div className="max-h-72 overflow-y-auto py-1">
-                    {ROLES.map((r) => (
-                      <button
-                        key={r.id}
-                        onClick={() => handleSwitchRole(r.id)}
-                        className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-50 transition-colors ${
-                          userRole === r.id ? "text-blue-600 font-bold bg-blue-50/50" : "text-slate-700"
-                        }`}
-                      >
-                        <span className="truncate">{r.label}</span>
-                        {userRole === r.id && <span className="w-1.5 h-1.5 rounded-full bg-blue-600"></span>}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              <QuickCreateMenu open={quickCreateOpen} onClose={() => setQuickCreateOpen(false)} />
             </div>
 
-            {/* Notifications */}
-            <NotificationCenter />
+            <NotificationBell />
+            
+            <div className="w-px h-6 bg-border mx-1" />
 
-            {/* User Profile & Sign Out */}
-            <div className="flex items-center gap-2 pl-2 sm:pl-3 border-l border-slate-200">
-              <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold shadow-xs">
-                {userEmail ? userEmail.charAt(0).toUpperCase() : 'U'}
-              </div>
-              <div className="hidden xl:flex flex-col">
-                <span className="text-xs font-semibold text-slate-800 max-w-[140px] truncate leading-tight">
-                  {userEmail}
-                </span>
-                <span className="text-[10px] text-slate-400 font-medium capitalize">
-                  {userRole.replace(/_/g, ' ')}
-                </span>
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="text-xs text-slate-400 hover:text-red-600 transition-colors ml-1 px-1.5 py-1 rounded hover:bg-slate-100"
-              >
-                Sign out
-              </button>
-            </div>
+            <UserMenu />
           </div>
         </header>
 
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto">
-          {children}
+        {/* Page Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+          <div className="max-w-[1500px] mx-auto w-full">
+            {children}
+          </div>
         </main>
       </div>
+
+      {/* Command Palette */}
+      <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
     </div>
+  );
+}
+
+// ── Export Layout ──────────────────────────────────────────────────────
+
+export default function DashboardLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <AuthProvider>
+      <DashboardShell>{children}</DashboardShell>
+    </AuthProvider>
   );
 }

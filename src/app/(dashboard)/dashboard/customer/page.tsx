@@ -1,8 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bot, Phone, Star, TrendingUp, Plus, Loader2, MessageSquare, X } from "lucide-react";
+import {
+  PageHeader,
+  StatusBadge,
+  Modal,
+  FormField,
+  MetricCard,
+  Tabs,
+} from "@/components/ui";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { Bot, Phone, Star, TrendingUp, Plus, MessageSquare, HeartHandshake, CheckCircle2 } from "lucide-react";
 import { fetchCustomerMetrics, addInquiry, addReview } from "@/lib/queries/customer";
 
 export default function CustomerPage() {
@@ -13,46 +22,53 @@ export default function CustomerPage() {
     newUncontacted: 0,
     totalReviews: 0,
     avgRating: "N/A",
-    aiStatus: "active"
+    aiStatus: "active",
   });
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<"inquiries" | "reviews">("inquiries");
+  const [activeTab, setActiveTab] = useState("inquiries");
 
-  // Modals state
   const [showInquiryModal, setShowInquiryModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
-  // Forms state
-  const [inquiryForm, setInquiryForm] = useState({ customer_name: '', customer_email: '', inquiry_type: 'Quote', message: '', source: 'web', status: 'new' });
-  const [reviewForm, setReviewForm] = useState({ rating: 5, review_text: '', platform: 'Google' });
+  const [inquiryForm, setInquiryForm] = useState({
+    customer_name: "",
+    customer_email: "",
+    inquiry_type: "Quote",
+    message: "",
+    source: "web",
+    status: "new",
+  });
+  const [reviewForm, setReviewForm] = useState({
+    rating: 5,
+    review_text: "",
+    platform: "Google",
+  });
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchCustomerMetrics();
       setMetrics(data);
     } catch (err) {
-      console.error(err);
+      console.error("Failed to load customer metrics:", err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     loadData();
-
-    // Set up realtime subscriptions
-    const channels = supabase.channel('customer-dashboard')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'inquiries' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'reviews' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ai_receptionist_logs' }, loadData)
+    const channels = supabase
+      .channel("customer-dashboard")
+      .on("postgres_changes", { event: "*", schema: "public", table: "inquiries" }, loadData)
+      .on("postgres_changes", { event: "*", schema: "public", table: "reviews" }, loadData)
       .subscribe();
 
     return () => {
       supabase.removeChannel(channels);
     };
-  }, []);
+  }, [loadData]);
 
   const handleInquirySubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,10 +76,17 @@ export default function CustomerPage() {
     try {
       await addInquiry(inquiryForm);
       setShowInquiryModal(false);
-      setInquiryForm({ customer_name: '', customer_email: '', inquiry_type: 'Quote', message: '', source: 'web', status: 'new' });
-      await loadData(); // Optimistic update could be done, but refetching is safer for demo
-    } catch (err) {
-      alert("Error adding inquiry");
+      setInquiryForm({
+        customer_name: "",
+        customer_email: "",
+        inquiry_type: "Quote",
+        message: "",
+        source: "web",
+        status: "new",
+      });
+      loadData();
+    } catch (err: any) {
+      alert("Error adding inquiry: " + err.message);
     } finally {
       setSubmitting(false);
     }
@@ -75,214 +98,340 @@ export default function CustomerPage() {
     try {
       await addReview(reviewForm);
       setShowReviewModal(false);
-      setReviewForm({ rating: 5, review_text: '', platform: 'Google' });
-      await loadData();
-    } catch (err) {
-      alert("Error adding review");
+      setReviewForm({ rating: 5, review_text: "", platform: "Google" });
+      loadData();
+    } catch (err: any) {
+      alert("Error adding review: " + err.message);
     } finally {
       setSubmitting(false);
     }
   };
 
-  return (
-    <div className="p-8 max-w-[1200px] mx-auto space-y-8 pb-24 relative">
-      <div className="flex justify-between items-end">
+  const inquiryColumns: Column<any>[] = [
+    {
+      key: "customer_name",
+      header: "Customer / Contact",
+      sortable: true,
+      render: (r) => (
         <div>
-          <h1 className="text-[38px] font-bold font-display text-ink-navy tracking-tight">Customer Intelligence</h1>
-          <p className="text-slate-gray font-medium mt-1">AI receptionist, missed calls, reviews & retention</p>
+          <span className="font-semibold text-text-primary block text-body-sm">{r.customer_name}</span>
+          <span className="text-caption text-text-muted">{r.customer_email || "No email"}</span>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => setShowReviewModal(true)} className="cal-btn-dark flex items-center gap-2 text-sm px-4 py-2.5">
-            <Star className="w-4 h-4" /> Add Review
-          </button>
-          <button onClick={() => setShowInquiryModal(true)} className="cal-btn-primary flex items-center gap-2">
-            <Plus className="w-4 h-4" /> New Inquiry
-          </button>
+      ),
+    },
+    {
+      key: "inquiry_type",
+      header: "Inquiry Type",
+      sortable: true,
+      render: (r) => (
+        <span className="badge badge-primary text-[11px] font-semibold">{r.inquiry_type}</span>
+      ),
+    },
+    {
+      key: "message",
+      header: "Client Message / Request",
+      render: (r) => (
+        <span className="text-body-sm text-text-secondary truncate max-w-[320px] block" title={r.message}>
+          {r.message}
+        </span>
+      ),
+    },
+    {
+      key: "source",
+      header: "Origin Channel",
+      render: (r) => (
+        <span className="text-caption text-text-muted capitalize">{r.source || "web"}</span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      render: (r) => (
+        <StatusBadge
+          status={r.status === "resolved" ? "Active" : r.status === "in_progress" ? "Pending" : "Draft"}
+          label={r.status?.toUpperCase() || "NEW"}
+        />
+      ),
+    },
+  ];
+
+  const reviewColumns: Column<any>[] = [
+    {
+      key: "rating",
+      header: "Rating (CSAT)",
+      sortable: true,
+      render: (r) => (
+        <div className="flex items-center gap-1 text-warning-500">
+          <Star className="w-4 h-4 fill-current" />
+          <span className="font-bold text-body-sm text-text-primary">{r.rating} / 5</span>
         </div>
-      </div>
+      ),
+    },
+    {
+      key: "review_text",
+      header: "Client Testimonial / Feedback",
+      render: (r) => (
+        <span className="text-body-sm text-text-secondary leading-normal">{r.review_text}</span>
+      ),
+    },
+    {
+      key: "platform",
+      header: "Source Platform",
+      sortable: true,
+      render: (r) => (
+        <span className="text-caption text-text-muted font-medium">{r.platform || "Direct"}</span>
+      ),
+    },
+    {
+      key: "created_at",
+      header: "Date Received",
+      sortable: true,
+      render: (r) => (
+        <span className="text-caption text-text-muted">
+          {r.created_at ? new Date(r.created_at).toLocaleDateString() : "—"}
+        </span>
+      ),
+    },
+  ];
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        {[
-          { label: "Total Inquiries", value: loading ? '...' : metrics.totalInquiries, icon: Bot, color: "text-signal-blue" },
-          { label: "New / Uncontacted", value: loading ? '...' : metrics.newUncontacted, icon: Phone, color: "text-amber-500" },
-          { label: "Avg Rating", value: loading ? '...' : metrics.avgRating, icon: Star, color: "text-yellow-500" },
-          { label: "Total Reviews", value: loading ? '...' : metrics.totalReviews, icon: TrendingUp, color: "text-emerald-500" },
-        ].map((m, idx) => (
-          <div key={idx} className="cal-card p-6">
-            <m.icon className={`w-5 h-5 ${m.color} mb-3`} />
-            <p className="text-sm text-slate-gray">{m.label}</p>
-            <p className="text-3xl font-bold text-ink-navy font-display mt-1">{m.value}</p>
-          </div>
-        ))}
-      </div>
-
-      <div className={`cal-card p-6 border-0 ${metrics.aiStatus === 'active' ? 'bg-gradient-to-r from-ink-navy to-deep-cobalt' : 'bg-slate-800'}`}>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center">
-              <Bot className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <p className="font-bold text-white text-lg">AI Receptionist — {metrics.aiStatus === 'active' ? 'Active' : 'Offline'}</p>
-              <p className="text-white/70 text-sm">Handles missed calls, web chats, and email inquiries 24/7</p>
-            </div>
-          </div>
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Customer Intelligence & Retention"
+        description="Service requests, customer satisfaction (CSAT) scoring, AI receptionist logs, and feedback management"
+        breadcrumbs={[{ label: "Commercial" }, { label: "Customer Experience" }]}
+        actions={
           <div className="flex items-center gap-2">
-            {metrics.aiStatus === 'active' ? (
-              <>
-                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="text-emerald-400 text-sm font-semibold">Online</span>
-              </>
-            ) : (
-              <>
-                <div className="w-2 h-2 rounded-full bg-red-400" />
-                <span className="text-red-400 text-sm font-semibold">Offline</span>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="cal-card p-0 overflow-hidden">
-        <div className="border-b border-hairline bg-paper p-5 flex gap-2">
-          {(["inquiries", "reviews"] as const).map(t => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold capitalize transition-colors ${tab === t ? 'bg-signal-blue text-white' : 'text-slate-gray hover:bg-pebble'}`}>
-              {t}
+            <button
+              onClick={() => setShowReviewModal(true)}
+              className="btn btn-secondary btn-sm flex items-center gap-1.5"
+            >
+              <Star className="w-4 h-4" /> Add Review
             </button>
-          ))}
-        </div>
-        
-        {loading ? (
-          <div className="p-12 text-center"><Loader2 className="w-8 h-8 animate-spin mx-auto text-signal-blue" /></div>
-        ) : tab === "inquiries" ? (
-          <div className="divide-y divide-hairline">
-            {metrics.inquiries.length === 0 ? (
-              <div className="p-12 text-center text-slate-gray">
-                <Bot className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="font-semibold">No inquiries yet.</p>
-              </div>
-            ) : metrics.inquiries.map(iq => (
-              <div key={iq.id} className="p-5 flex items-start gap-4 hover:bg-cloud/50 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-signal-blue/10 flex items-center justify-center flex-shrink-0">
-                  <MessageSquare className="w-4 h-4 text-signal-blue" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <p className="font-semibold text-ink-navy text-sm">{iq.customer_name}</p>
-                      <p className="text-xs text-mist-gray mt-0.5">{iq.inquiry_type} · {iq.source}</p>
-                    </div>
-                    <span className={`cal-badge text-xs ${iq.status === 'new' ? 'bg-amber-50 text-amber-700' : 'bg-pebble text-slate-gray'}`}>
-                      {iq.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-slate-gray mt-2">{iq.message}</p>
-                  {iq.ai_response && (
-                    <div className="mt-3 p-3 bg-signal-blue/5 rounded-lg border border-signal-blue/20">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Bot className="w-3 h-3 text-signal-blue" />
-                        <span className="text-xs font-semibold text-signal-blue">AI Response</span>
-                      </div>
-                      <p className="text-xs text-slate-gray">{iq.ai_response}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
+            <button
+              onClick={() => setShowInquiryModal(true)}
+              className="btn btn-primary btn-sm flex items-center gap-1.5"
+            >
+              <Plus className="w-4 h-4" /> New Inquiry
+            </button>
           </div>
-        ) : (
-          <div className="divide-y divide-hairline">
-            {metrics.reviews.length === 0 ? (
-              <div className="p-12 text-center text-slate-gray">
-                <Star className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                <p className="font-semibold">No reviews yet.</p>
-              </div>
-            ) : metrics.reviews.map(r => (
-              <div key={r.id} className="p-5 flex items-start gap-4 hover:bg-cloud/50 transition-colors">
-                <div className="w-9 h-9 rounded-lg bg-amber-50 flex items-center justify-center flex-shrink-0">
-                  <Star className="w-4 h-4 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-1 mb-1">
-                    {Array.from({ length: 5 }).map((_, i) => (
-                      <Star key={i} className={`w-4 h-4 ${i < (r.rating || 0) ? 'text-amber-400 fill-amber-400' : 'text-mist-gray'}`} />
-                    ))}
-                    <span className="text-xs text-mist-gray ml-1">{r.platform}</span>
-                  </div>
-                  <p className="text-sm text-slate-gray">{r.review_text}</p>
-                </div>
-                <span className="text-xs text-mist-gray">{new Date(r.created_at).toLocaleDateString()}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        }
+      />
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MetricCard
+          title="Customer Inquiries"
+          value={metrics.totalInquiries}
+          subtitle="Total support & quote requests"
+          icon={<MessageSquare className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Pending Response"
+          value={metrics.newUncontacted}
+          subtitle="Uncontacted inbound requests"
+          icon={<Phone className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Average CSAT Rating"
+          value={metrics.avgRating}
+          subtitle="Client satisfaction benchmark"
+          icon={<Star className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Verified Reviews"
+          value={metrics.totalReviews}
+          subtitle="Feedback submitted"
+          icon={<HeartHandshake className="w-5 h-5" />}
+        />
       </div>
 
-      {/* Inquiry Modal */}
-      {showInquiryModal && (
-        <div className="fixed inset-0 bg-ink-navy/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-ink-navy font-display">New Inquiry</h3>
-              <button onClick={() => setShowInquiryModal(false)} className="text-mist-gray hover:text-ink-navy"><X className="w-5 h-5"/></button>
-            </div>
-            <form onSubmit={handleInquirySubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Customer Name</label>
-                <input required type="text" className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={inquiryForm.customer_name} onChange={e => setInquiryForm({...inquiryForm, customer_name: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Email</label>
-                <input required type="email" className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={inquiryForm.customer_email} onChange={e => setInquiryForm({...inquiryForm, customer_email: e.target.value})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Message</label>
-                <textarea required rows={3} className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={inquiryForm.message} onChange={e => setInquiryForm({...inquiryForm, message: e.target.value})} />
-              </div>
-              <button disabled={submitting} type="submit" className="w-full cal-btn-primary flex items-center justify-center gap-2 mt-2">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                Submit Inquiry
-              </button>
-            </form>
-          </div>
-        </div>
+      {/* Tab Selector */}
+      <Tabs
+        tabs={[
+          { id: "inquiries", label: `Customer Inquiries (${metrics.inquiries.length})` },
+          { id: "reviews", label: `Reviews & CSAT (${metrics.reviews.length})` },
+        ]}
+        activeTab={activeTab}
+        onChange={setActiveTab}
+      />
+
+      {/* Tables based on active tab */}
+      {activeTab === "inquiries" ? (
+        <DataTable
+          data={metrics.inquiries}
+          columns={inquiryColumns}
+          loading={loading}
+          searchable={true}
+          searchPlaceholder="Search customer requests by name, email, message..."
+          searchKeys={["customer_name", "customer_email", "message"]}
+          emptyTitle="No Open Inquiries"
+          emptyDescription="Customer tickets and quote requests will appear here."
+          emptyAction={
+            <button onClick={() => setShowInquiryModal(true)} className="btn btn-primary btn-sm">
+              <Plus className="w-4 h-4 mr-1.5" /> Log Customer Request
+            </button>
+          }
+        />
+      ) : (
+        <DataTable
+          data={metrics.reviews}
+          columns={reviewColumns}
+          loading={loading}
+          searchable={true}
+          searchPlaceholder="Search review feedback..."
+          searchKeys={["review_text", "platform"]}
+          emptyTitle="No Client Reviews"
+          emptyDescription="Verified customer feedback and satisfaction ratings will appear here."
+          emptyAction={
+            <button onClick={() => setShowReviewModal(true)} className="btn btn-primary btn-sm">
+              <Star className="w-4 h-4 mr-1.5" /> Record Client Review
+            </button>
+          }
+        />
       )}
 
-      {/* Review Modal */}
-      {showReviewModal && (
-        <div className="fixed inset-0 bg-ink-navy/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-ink-navy font-display">Add Review</h3>
-              <button onClick={() => setShowReviewModal(false)} className="text-mist-gray hover:text-ink-navy"><X className="w-5 h-5"/></button>
-            </div>
-            <form onSubmit={handleReviewSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Rating (1-5)</label>
-                <input required type="number" min="1" max="5" className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={reviewForm.rating} onChange={e => setReviewForm({...reviewForm, rating: Number(e.target.value)})} />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Platform</label>
-                <select className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={reviewForm.platform} onChange={e => setReviewForm({...reviewForm, platform: e.target.value})}>
-                  <option>Google</option>
-                  <option>Yelp</option>
-                  <option>Facebook</option>
-                  <option>Direct</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-gray mb-1">Review Text</label>
-                <textarea required rows={3} className="w-full border border-hairline rounded-lg px-3 py-2 text-ink-navy" value={reviewForm.review_text} onChange={e => setReviewForm({...reviewForm, review_text: e.target.value})} />
-              </div>
-              <button disabled={submitting} type="submit" className="w-full cal-btn-primary flex items-center justify-center gap-2 mt-2">
-                {submitting ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                Submit Review
-              </button>
-            </form>
+      {/* Log Inquiry Modal */}
+      <Modal
+        open={showInquiryModal}
+        onClose={() => setShowInquiryModal(false)}
+        title="Log Customer Inquiry"
+        description="Record an inbound phone call, portal ticket, or estimate request."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowInquiryModal(false)}
+              className="btn btn-secondary btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="inquiry-form"
+              disabled={submitting}
+              className="btn btn-primary btn-sm"
+            >
+              {submitting ? "Saving..." : "Save Inquiry"}
+            </button>
+          </>
+        }
+      >
+        <form id="inquiry-form" onSubmit={handleInquirySubmit} className="space-y-4">
+          <FormField label="Customer Name" required>
+            <input
+              type="text"
+              required
+              className="form-input"
+              value={inquiryForm.customer_name}
+              onChange={(e) => setInquiryForm({ ...inquiryForm, customer_name: e.target.value })}
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Customer Email">
+              <input
+                type="email"
+                className="form-input"
+                value={inquiryForm.customer_email}
+                onChange={(e) => setInquiryForm({ ...inquiryForm, customer_email: e.target.value })}
+              />
+            </FormField>
+
+            <FormField label="Inquiry Type">
+              <select
+                className="form-input"
+                value={inquiryForm.inquiry_type}
+                onChange={(e) => setInquiryForm({ ...inquiryForm, inquiry_type: e.target.value })}
+              >
+                <option value="Quote">Quote Request</option>
+                <option value="Service Issue">Service Issue</option>
+                <option value="Emergency Cleaning">Emergency Cleaning</option>
+                <option value="Billing">Billing Inquiry</option>
+              </select>
+            </FormField>
           </div>
-        </div>
-      )}
+
+          <FormField label="Detailed Message / Request" required>
+            <textarea
+              required
+              className="form-input h-24 resize-none"
+              value={inquiryForm.message}
+              onChange={(e) => setInquiryForm({ ...inquiryForm, message: e.target.value })}
+            />
+          </FormField>
+        </form>
+      </Modal>
+
+      {/* Add Review Modal */}
+      <Modal
+        open={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        title="Record Customer Satisfaction Review"
+        description="Document client feedback, testimonial, or external rating."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowReviewModal(false)}
+              className="btn btn-secondary btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="review-form"
+              disabled={submitting}
+              className="btn btn-primary btn-sm"
+            >
+              {submitting ? "Saving..." : "Save Review"}
+            </button>
+          </>
+        }
+      >
+        <form id="review-form" onSubmit={handleReviewSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Rating Score (1-5 Stars)">
+              <select
+                className="form-input"
+                value={reviewForm.rating}
+                onChange={(e) => setReviewForm({ ...reviewForm, rating: parseInt(e.target.value) })}
+              >
+                <option value="5">5 Stars - Excellent</option>
+                <option value="4">4 Stars - Good</option>
+                <option value="3">3 Stars - Average</option>
+                <option value="2">2 Stars - Poor</option>
+                <option value="1">1 Star - Critical Defect</option>
+              </select>
+            </FormField>
+
+            <FormField label="Review Platform">
+              <select
+                className="form-input"
+                value={reviewForm.platform}
+                onChange={(e) => setReviewForm({ ...reviewForm, platform: e.target.value })}
+              >
+                <option value="Google">Google Business</option>
+                <option value="Direct CSAT">Direct CSAT Survey</option>
+                <option value="Quarterly Review">QBR Quarterly Review</option>
+              </select>
+            </FormField>
+          </div>
+
+          <FormField label="Customer Testimonial" required>
+            <textarea
+              required
+              className="form-input h-24 resize-none"
+              placeholder="Record the exact client comments and service feedback..."
+              value={reviewForm.review_text}
+              onChange={(e) => setReviewForm({ ...reviewForm, review_text: e.target.value })}
+            />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 }

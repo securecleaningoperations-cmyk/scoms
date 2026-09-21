@@ -1,265 +1,385 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Users, Upload, Video, ShieldAlert, CheckCircle2, ChevronRight, GraduationCap } from 'lucide-react';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
+import { PageHeader, StatusBadge, Modal, FormField, EmptyState, Tabs } from "@/components/ui";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { Users, Plus, UserPlus, GraduationCap, Award, BarChart3, ChevronRight } from "lucide-react";
+import Link from "next/link";
 
-import { supabase } from '@/lib/supabase';
-import Link from 'next/link';
+// ── Types ──────────────────────────────────────────────────────────────
+
+interface Employee {
+  id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  role: string;
+  position?: string;
+  department?: string;
+  status: string;
+  pay_type?: string;
+  pay_rate?: number;
+  hire_date?: string;
+  phone?: string;
+  location?: string;
+  created_at?: string;
+}
+
+// ── Component ──────────────────────────────────────────────────────────
 
 export default function HRManagementPage() {
-  const [activeTab, setActiveTab] = useState<'employees' | 'training'>('employees');
-  const [employees, setEmployees] = useState<any[]>([]);
-  const [trainings, setTrainings] = useState<any[]>([]);
+  const router = useRouter();
+  const [employees, setEmployees] = useState<Employee[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showAddEmpModal, setShowAddEmpModal] = useState(false);
-  const [savingEmp, setSavingEmp] = useState(false);
-  const [empForm, setEmpForm] = useState({ first_name: '', last_name: '', email: '', role: 'field_employee', pay_type: 'hourly', pay_rate: '' });
+  const [error, setError] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [activeTab, setActiveTab] = useState("employees");
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const [form, setForm] = useState({
+    first_name: "",
+    last_name: "",
+    email: "",
+    role: "field_employee",
+    position: "",
+    department: "",
+    pay_type: "hourly",
+    pay_rate: "",
+    phone: "",
+  });
 
-  const fetchData = async () => {
+  const fetchEmployees = useCallback(async () => {
     setLoading(true);
+    setError(null);
     try {
-      // Fetch employees via same-origin API (Zero CORS error)
-      const empRes = await fetch('/api/hr/employees');
-      const empJson = await empRes.json();
-      if (empJson.data) setEmployees(empJson.data);
-
-      // Fetch trainings via same-origin API (Zero CORS error)
-      const trainRes = await fetch('/api/hr/training');
-      const trainJson = await trainRes.json();
-      const trainData = trainJson.data || [];
-
-      const uniqueModules = trainData.reduce((acc: any[], current: any) => {
-        if (!acc.find((x: any) => x.type === current.type)) {
-          acc.push({
-            ...current,
-            completions: trainData.filter((t: any) => t.type === current.type && (t.status === 'Completed' || t.status === 'completed')).length
-          });
-        }
-        return acc;
-      }, []);
-      setTrainings(uniqueModules);
-    } catch (err) {
-      console.error("Error fetching HR data:", err);
+      const res = await fetch("/api/hr/employees");
+      const json = await res.json();
+      if (json.data) {
+        setEmployees(json.data);
+      } else if (json.error) {
+        setError(json.error);
+      }
+    } catch (err: any) {
+      setError("Failed to load employees. The API may not be configured.");
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    fetchEmployees();
+  }, [fetchEmployees]);
 
   const handleAddEmployee = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSavingEmp(true);
-    
-    // We fetch a valid tenant_id from the current user or assume one if RLS is flexible
-    const { data: { session } } = await supabase.auth.getSession();
-    
+    setSaving(true);
+
     try {
-      const res = await fetch('/api/hr/employees', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...empForm })
+      const res = await fetch("/api/hr/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
       });
-      
+
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to create employee');
-      
-      setShowAddEmpModal(false);
-      setEmpForm({ first_name: '', last_name: '', email: '', role: 'field_employee', pay_type: 'hourly', pay_rate: '' });
-      fetchData();
+      if (!res.ok) throw new Error(json.error || "Failed to create employee");
+
+      setShowAddModal(false);
+      setForm({ first_name: "", last_name: "", email: "", role: "field_employee", position: "", department: "", pay_type: "hourly", pay_rate: "", phone: "" });
+      fetchEmployees();
     } catch (err: any) {
       alert(err.message);
     } finally {
-      setSavingEmp(false);
+      setSaving(false);
     }
   };
 
-  return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
+  // ── Table Columns ─────────────────────────────────────────────────
+
+  const columns: Column<Employee>[] = [
+    {
+      key: "name",
+      label: "Employee",
+      sortable: true,
+      render: (_v, row) => (
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">HR & Training Command Center</h1>
-          <p className="text-slate-500 mt-2">Manage workforce roles, monitor performance, and deploy interactive training.</p>
+          <p className="text-body-sm font-medium text-text-primary">
+            {row.first_name || "—"} {row.last_name || ""}
+          </p>
+          <p className="text-caption text-text-muted font-mono">{row.email || "—"}</p>
         </div>
-        <div className="flex gap-4">
-          <button 
-            onClick={() => setActiveTab('employees')}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${activeTab === 'employees' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200'}`}
-          >
-            <Users className="inline-block w-5 h-5 mr-2" />
-            Manage Employees
+      ),
+    },
+    {
+      key: "role",
+      label: "Role",
+      sortable: true,
+      render: (val) => (
+        <span className="text-body-sm capitalize">{(val || "—").replace(/_/g, " ")}</span>
+      ),
+    },
+    {
+      key: "position",
+      label: "Position",
+      sortable: true,
+      render: (val) => val || "—",
+    },
+    {
+      key: "department",
+      label: "Department",
+      sortable: true,
+      render: (val) => val || "—",
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (val) => <StatusBadge status={val || "Active"} />,
+    },
+    {
+      key: "pay_type",
+      label: "Pay Type",
+      sortable: true,
+      render: (val) => (
+        <span className="text-body-sm capitalize">{val || "—"}</span>
+      ),
+    },
+    {
+      key: "pay_rate",
+      label: "Rate",
+      sortable: true,
+      align: "right",
+      render: (val) =>
+        val ? `$${Number(val).toFixed(2)}` : "—",
+    },
+  ];
+
+  // ── Tab Content ───────────────────────────────────────────────────
+
+  const tabs = [
+    { id: "employees", label: "Employees", count: employees.length },
+    { id: "recruiting", label: "Recruiting" },
+    { id: "training", label: "Training" },
+    { id: "certifications", label: "Certifications" },
+    { id: "performance", label: "Performance" },
+  ];
+
+  const tabLinks: Record<string, string> = {
+    recruiting: "/dashboard/hr/recruiting",
+    training: "/dashboard/hr/training",
+    certifications: "/dashboard/hr/certifications",
+    performance: "/dashboard/hr/performance",
+  };
+
+  return (
+    <div className="p-6 max-w-[1300px] mx-auto space-y-5 pb-12">
+      <PageHeader
+        title="Workforce Management"
+        description="Manage employees, roles, payroll, training, and certifications."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Workforce" },
+        ]}
+        actions={
+          <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+            <Plus className="w-4 h-4" />
+            Add Employee
           </button>
-          <button 
-            onClick={() => setActiveTab('training')}
-            className={`px-6 py-3 rounded-xl font-semibold transition-all ${activeTab === 'training' ? 'bg-indigo-600 text-white shadow-lg' : 'bg-white text-slate-600 border border-slate-200'}`}
-          >
-            <GraduationCap className="inline-block w-5 h-5 mr-2" />
-            Training Studio
-          </button>
-        </div>
+        }
+      />
+
+      {/* Tabs — navigate to sub-pages */}
+      <div className="flex items-center gap-5 border-b border-border overflow-x-auto">
+        {tabs.map((t) => {
+          const isActive = activeTab === t.id;
+          if (t.id !== "employees" && tabLinks[t.id]) {
+            return (
+              <Link
+                key={t.id}
+                href={tabLinks[t.id]}
+                className="tab whitespace-nowrap"
+              >
+                {t.label}
+              </Link>
+            );
+          }
+          return (
+            <button
+              key={t.id}
+              onClick={() => setActiveTab(t.id)}
+              className={`tab ${isActive ? "tab-active" : ""}`}
+            >
+              {t.label}
+              {t.count !== undefined && (
+                <span className={`ml-1.5 text-[10px] font-semibold rounded-full px-1.5 py-0.5 ${
+                  isActive ? "bg-primary-100 text-primary-700" : "bg-neutral-100 text-neutral-500"
+                }`}>
+                  {t.count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
-      {activeTab === 'employees' && (
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-6 border-b border-slate-100 flex justify-between items-center">
-            <h2 className="text-xl font-bold text-slate-900">Workforce Roster</h2>
-            <button onClick={() => setShowAddEmpModal(true)} className="bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-semibold hover:bg-indigo-100">
-              + Add Employee
+      {/* Employee Data Table */}
+      {error ? (
+        <div className="p-3 rounded-md bg-warning-50 border border-warning-100 text-body-sm text-warning-700">
+          <strong>Note:</strong> {error}
+        </div>
+      ) : null}
+
+      <DataTable
+        data={employees}
+        columns={columns}
+        loading={loading}
+        emptyTitle="No employees found"
+        emptyDescription="Add your first employee to get started with workforce management."
+        emptyAction={
+          <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm">
+            <UserPlus className="w-4 h-4" />
+            Add First Employee
+          </button>
+        }
+        searchable
+        searchPlaceholder="Search employees by name, email, role..."
+        searchKeys={["first_name", "last_name", "email", "role", "position", "department"]}
+        exportable
+        selectable
+        onRowClick={(row) => router.push(`/dashboard/hr/${row.id}`)}
+      />
+
+      {/* ── Add Employee Modal ──────────────────────────────────────── */}
+      <Modal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Add New Employee"
+        description="Create a new employee record in the system."
+        size="md"
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>
+              Cancel
             </button>
-          </div>
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 text-slate-500 text-sm">
-                <th className="p-4 font-semibold">Employee Name</th>
-                <th className="p-4 font-semibold">Assigned Role</th>
-                <th className="p-4 font-semibold">Primary Location</th>
-                <th className="p-4 font-semibold">Status</th>
-                <th className="p-4 font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">Loading employees...</td>
-                </tr>
-              ) : employees.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="p-8 text-center text-slate-500">No employees found.</td>
-                </tr>
-              ) : employees.map(emp => (
-                <tr key={emp.id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                  <td className="p-4">
-                    <div className="font-semibold text-slate-900">
-                      {emp.first_name || emp.users?.first_name || 'Staff'} {emp.last_name || emp.users?.last_name || 'Member'}
-                    </div>
-                    <div className="text-xs text-slate-400 font-mono">{emp.email || emp.users?.email || 'staff@scoms.com'}</div>
-                  </td>
-                  <td className="p-4">
-                    <span className="font-semibold text-slate-800 text-sm">
-                      {emp.position || (emp.role === 'operations_manager' ? 'Operations Director' : emp.role === 'supervisor' ? 'Field Supervisor' : 'Cleaning Specialist')}
-                    </span>
-                    <div className="text-xs text-indigo-600 font-medium">{emp.department || 'Commercial Operations'}</div>
-                  </td>
-                  <td className="p-4 text-slate-600 text-sm">Dallas-Fort Worth Metro</td>
-                  <td className="p-4">
-                    <span className="px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-700">
-                      Active
-                    </span>
-                  </td>
-                  <td className="p-4">
-                    <button className="text-indigo-600 font-semibold hover:text-indigo-800 flex items-center text-sm">
-                      Monitor Profile <ChevronRight className="w-4 h-4 ml-1" />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {activeTab === 'training' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <h2 className="text-xl font-bold text-slate-900 mb-6">Active Training Modules</h2>
-              <div className="space-y-4">
-                {loading ? (
-                  <p className="text-slate-500 p-4">Loading training modules...</p>
-                ) : trainings.length === 0 ? (
-                  <p className="text-slate-500 p-4">No active training modules found.</p>
-                ) : trainings.map(train => (
-                  <div key={train.id} className="flex items-center justify-between p-4 border border-slate-100 rounded-xl hover:shadow-md transition-shadow">
-                    <div className="flex items-center">
-                      <div className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center mr-4">
-                        <Video className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-slate-900">{train.type}</h3>
-                        <p className="text-sm text-slate-500">Video + Quiz • {train.completions} completions across workforce</p>
-                      </div>
-                    </div>
-                    <Link href="/dashboard/hr/training" className="text-slate-400 hover:text-slate-600">
-                      Manage Trainings
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
+            <button className="btn btn-primary" onClick={handleAddEmployee} disabled={saving}>
+              {saving ? (
+                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              ) : null}
+              Save Employee
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleAddEmployee} className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="First Name" required>
+              <input
+                required
+                type="text"
+                value={form.first_name}
+                onChange={(e) => setForm((p) => ({ ...p, first_name: e.target.value }))}
+                className="input"
+                placeholder="John"
+              />
+            </FormField>
+            <FormField label="Last Name" required>
+              <input
+                required
+                type="text"
+                value={form.last_name}
+                onChange={(e) => setForm((p) => ({ ...p, last_name: e.target.value }))}
+                className="input"
+                placeholder="Doe"
+              />
+            </FormField>
           </div>
 
-          <div className="space-y-6">
-            <div className="bg-indigo-600 rounded-2xl shadow-lg p-6 text-white">
-              <h2 className="text-xl font-bold mb-2">Upload New Video</h2>
-              <p className="text-indigo-200 text-sm mb-6">Deploy a new training video and attach an interactive MCQ quiz for employees.</p>
-              
-              <div className="border-2 border-dashed border-indigo-400 rounded-xl p-8 text-center bg-indigo-700/30 mb-6">
-                <Upload className="w-8 h-8 mx-auto mb-2 text-indigo-300" />
-                <p className="font-semibold">Drag & Drop MP4</p>
-                <p className="text-xs text-indigo-300 mt-1">Maximum size 500MB</p>
-              </div>
+          <FormField label="Email" required>
+            <input
+              required
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
+              className="input"
+              placeholder="john.doe@company.com"
+            />
+          </FormField>
 
-              <button className="w-full bg-white text-indigo-600 font-bold py-3 rounded-xl shadow hover:bg-slate-50 transition-colors">
-                Select Video File
-              </button>
-            </div>
-            
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-6">
-              <div className="flex items-center text-amber-600 mb-4">
-                <ShieldAlert className="w-5 h-5 mr-2" />
-                <h3 className="font-bold">Compliance Status</h3>
-              </div>
-              <p className="text-sm text-slate-600 mb-4">3 employees are currently overdue for Mandatory Hazmat Training.</p>
-              <button className="w-full bg-amber-50 text-amber-700 font-semibold py-2 rounded-lg border border-amber-200 hover:bg-amber-100 transition-colors">
-                Send Reminders
-              </button>
-            </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Role" required>
+              <select
+                required
+                value={form.role}
+                onChange={(e) => setForm((p) => ({ ...p, role: e.target.value }))}
+                className="input"
+              >
+                <option value="field_employee">Field Employee</option>
+                <option value="supervisor">Supervisor</option>
+                <option value="operations_manager">Operations Manager</option>
+                <option value="hr_manager">HR Manager</option>
+                <option value="finance_admin">Finance Admin</option>
+                <option value="compliance_officer">Compliance Officer</option>
+              </select>
+            </FormField>
+            <FormField label="Department">
+              <input
+                type="text"
+                value={form.department}
+                onChange={(e) => setForm((p) => ({ ...p, department: e.target.value }))}
+                className="input"
+                placeholder="Operations"
+              />
+            </FormField>
           </div>
-        </div>
-      )}
 
-      {/* Add Employee Modal */}
-      {showAddEmpModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl p-6">
-            <h3 className="text-lg font-bold text-slate-900 mb-4">Add New Employee</h3>
-            <form onSubmit={handleAddEmployee} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">First Name</label><input required type="text" value={empForm.first_name} onChange={e => setEmpForm(p => ({ ...p, first_name: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none" /></div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Last Name</label><input required type="text" value={empForm.last_name} onChange={e => setEmpForm(p => ({ ...p, last_name: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none" /></div>
-              </div>
-              <div><label className="block text-sm font-medium text-slate-700 mb-1">Email</label><input required type="email" value={empForm.email} onChange={e => setEmpForm(p => ({ ...p, email: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none" /></div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Role</label>
-                <select required value={empForm.role} onChange={e => setEmpForm(p => ({ ...p, role: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
-                  <option value="field_employee">Field Employee (Cleaner)</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="operations_manager">Operations Manager</option>
-                  <option value="hr_manager">HR Manager</option>
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Pay Type</label>
-                  <select required value={empForm.pay_type} onChange={e => setEmpForm(p => ({ ...p, pay_type: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none">
-                    <option value="hourly">Hourly</option>
-                    <option value="salary">Salary</option>
-                  </select>
-                </div>
-                <div><label className="block text-sm font-medium text-slate-700 mb-1">Pay Rate ($)</label><input required type="number" step="0.01" value={empForm.pay_rate} onChange={e => setEmpForm(p => ({ ...p, pay_rate: e.target.value }))} className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none" /></div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowAddEmpModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm text-slate-700 hover:bg-slate-50">Cancel</button>
-                <button type="submit" disabled={savingEmp} className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 flex items-center gap-2 disabled:opacity-50">
-                  {savingEmp ? 'Saving...' : 'Save Employee'}
-                </button>
-              </div>
-            </form>
+          <FormField label="Position">
+            <input
+              type="text"
+              value={form.position}
+              onChange={(e) => setForm((p) => ({ ...p, position: e.target.value }))}
+              className="input"
+              placeholder="Cleaning Specialist"
+            />
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Pay Type" required>
+              <select
+                required
+                value={form.pay_type}
+                onChange={(e) => setForm((p) => ({ ...p, pay_type: e.target.value }))}
+                className="input"
+              >
+                <option value="hourly">Hourly</option>
+                <option value="salary">Salary</option>
+              </select>
+            </FormField>
+            <FormField label="Pay Rate ($)" required>
+              <input
+                required
+                type="number"
+                step="0.01"
+                value={form.pay_rate}
+                onChange={(e) => setForm((p) => ({ ...p, pay_rate: e.target.value }))}
+                className="input"
+                placeholder="15.00"
+              />
+            </FormField>
           </div>
-        </div>
-      )}
+
+          <FormField label="Phone">
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => setForm((p) => ({ ...p, phone: e.target.value }))}
+              className="input"
+              placeholder="(214) 555-0100"
+            />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 }

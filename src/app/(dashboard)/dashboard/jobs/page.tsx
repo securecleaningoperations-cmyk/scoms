@@ -1,249 +1,386 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { FileText, Search, Filter, MoreHorizontal, Download, PlayCircle, CheckCircle2, Clock, Loader2, X } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
+import { PageHeader, StatusBadge, Modal, FormField, MetricCard } from "@/components/ui";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import { ClipboardList, Plus, Play, CheckCircle2, Clock, AlertTriangle, CalendarDays } from "lucide-react";
+import Link from "next/link";
+
+// ── Types ──────────────────────────────────────────────────────────────
+
+interface Job {
+  id: string;
+  client_id?: string;
+  client_name?: string;
+  service_type?: string;
+  status: string;
+  assigned_to?: string;
+  assigned_name?: string;
+  job_date?: string;
+  location?: string;
+  notes?: string;
+  created_at?: string;
+}
+
+// ── Job Lifecycle (spec section 19) ─────────────────────────────────
+
+const JOB_STATUSES = [
+  "Created", "Assigned", "Accepted", "En Route",
+  "In Progress", "Completed", "Inspected", "Approved", "Closed",
+] as const;
+
+const VALID_TRANSITIONS: Record<string, string[]> = {
+  Created: ["Assigned"],
+  Assigned: ["Accepted", "Created"],
+  Accepted: ["En Route", "Assigned"],
+  "En Route": ["In Progress", "Accepted"],
+  "In Progress": ["Completed"],
+  Completed: ["Inspected"],
+  Inspected: ["Approved", "In Progress"],
+  Approved: ["Closed"],
+  Closed: [],
+};
+
+// ── Component ──────────────────────────────────────────────────────────
 
 export default function JobsPage() {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [clients, setClients] = useState<any[]>([]);
+  const router = useRouter();
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [clients, setClients] = useState<{ id: string; name: string }[]>([]);
   const [employees, setEmployees] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [showModal, setShowModal] = useState(false);
-  const [search, setSearch] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const [formState, setFormState] = useState({
-    client: "",
-    service: "Standard Commercial Cleaning",
-    status: "In Progress",
-    assigned: "",
-    job_date: new Date().toISOString().split('T')[0]
+  const [form, setForm] = useState({
+    client_id: "",
+    service_type: "Standard Commercial Cleaning",
+    assigned_to: "",
+    job_date: new Date().toISOString().split("T")[0],
+    location: "",
+    notes: "",
   });
+
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [
+        { data: jobsData },
+        { data: clientsData },
+      ] = await Promise.all([
+        supabase.from("jobs").select("*").order("created_at", { ascending: false }),
+        supabase.from("clients").select("id, name"),
+      ]);
+
+      // Try fetching employees via API
+      try {
+        const empRes = await fetch("/api/hr/employees");
+        const empJson = await empRes.json();
+        if (empJson.data) setEmployees(empJson.data);
+      } catch {}
+
+      if (jobsData) setJobs(jobsData);
+      if (clientsData) setClients(clientsData);
+    } catch (err) {
+      console.error("Error fetching jobs:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
-  const fetchData = async () => {
-    setIsLoading(true);
-    const [
-      { data: jobsData },
-      { data: clientsData }
-    ] = await Promise.all([
-      supabase.from('jobs').select('*').order('created_at', { ascending: false }),
-      supabase.from('clients').select('id, name')
-    ]);
-
-    try {
-      const empRes = await fetch('/api/hr/employees');
-      const empJson = await empRes.json();
-      if (empJson.data) setEmployees(empJson.data);
-    } catch {
-      // Ignore
-    }
-    
-    if (jobsData) setJobs(jobsData);
-    if (clientsData) setClients(clientsData);
-    
-    setIsLoading(false);
-  };
-
-  const handleCreateJob = async (e: React.FormEvent) => {
+  const handleAddJob = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsAdding(true);
-
-    // Optional: resolve IDs if needed for backend relations
-    const selectedClient = clients.find(c => c.name === formState.client);
-    const selectedEmployee = employees.find(emp => `${emp.users?.first_name} ${emp.users?.last_name}` === formState.assigned);
+    setSaving(true);
 
     const payload = {
-      ...formState,
-      client_id: selectedClient?.id || null,
-      employee_id: selectedEmployee?.id || null,
+      client_id: form.client_id || null,
+      service_type: form.service_type,
+      status: "Created",
+      assigned_to: form.assigned_to || null,
+      job_date: form.job_date,
+      location: form.location,
+      notes: form.notes,
     };
 
-    const { error } = await supabase.from('jobs').insert([payload]);
-    if (!error) {
-      setShowModal(false);
-      setFormState({
-        client: "",
-        service: "Standard Commercial Cleaning",
-        status: "In Progress",
-        assigned: "",
-        job_date: new Date().toISOString().split('T')[0]
+    try {
+      const { error } = await supabase.from("jobs").insert([payload]);
+      if (error) throw error;
+
+      setShowAddModal(false);
+      setForm({
+        client_id: "", service_type: "Standard Commercial Cleaning",
+        assigned_to: "", job_date: new Date().toISOString().split("T")[0],
+        location: "", notes: "",
       });
       fetchData();
-    } else {
-      alert("Error creating job: " + error.message);
-    }
-    setIsAdding(false);
-  };
-
-  const filteredJobs = jobs.filter(j => 
-    (j.client || '').toLowerCase().includes(search.toLowerCase()) ||
-    (j.assigned || '').toLowerCase().includes(search.toLowerCase()) ||
-    (j.service || '').toLowerCase().includes(search.toLowerCase())
-  );
-
-  const getStatusStyle = (status: string) => {
-    switch(status) {
-      case 'In Progress': return 'bg-blue-50 text-blue-600 border-blue-200';
-      case 'Accepted': return 'bg-indigo-50 text-indigo-600 border-indigo-200';
-      case 'Approved': return 'bg-emerald-50 text-emerald-600 border-emerald-200';
-      case 'Closed': return 'bg-slate-100 text-slate-600 border-slate-200';
-      default: return 'bg-slate-50 text-slate-600 border-slate-200';
+    } catch (err: any) {
+      alert(err.message || "Failed to create job");
+    } finally {
+      setSaving(false);
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch(status) {
-      case 'In Progress': return <PlayCircle className="w-3 h-3 mr-1" />;
-      case 'Approved': return <CheckCircle2 className="w-3 h-3 mr-1" />;
-      case 'Closed': return <CheckCircle2 className="w-3 h-3 mr-1 opacity-50" />;
-      default: return <Clock className="w-3 h-3 mr-1" />;
+  const handleStatusTransition = async (jobId: string, currentStatus: string, newStatus: string) => {
+    const allowed = VALID_TRANSITIONS[currentStatus] || [];
+    if (!allowed.includes(newStatus)) {
+      alert(`Cannot transition from "${currentStatus}" to "${newStatus}". Allowed: ${allowed.join(", ") || "none"}`);
+      return;
+    }
+
+    try {
+      const { error } = await supabase.from("jobs").update({ status: newStatus }).eq("id", jobId);
+      if (error) throw error;
+      fetchData();
+    } catch (err: any) {
+      alert(err.message);
     }
   };
+
+  // ── Metrics ──────────────────────────────────────────────────────
+
+  const activeJobs = jobs.filter((j) => ["In Progress", "in_progress", "Assigned", "assigned", "En Route", "Accepted"].includes(j.status)).length;
+  const completedJobs = jobs.filter((j) => ["Completed", "completed", "Approved", "approved", "Closed", "closed"].includes(j.status)).length;
+  const totalJobs = jobs.length;
+  const completionRate = totalJobs > 0 ? Math.round((completedJobs / totalJobs) * 100) : 0;
+
+  // ── Table Columns ─────────────────────────────────────────────────
+
+  const columns: Column<Job>[] = [
+    {
+      key: "id",
+      label: "Job ID",
+      sortable: true,
+      width: "100px",
+      render: (val) => (
+        <span className="text-caption font-mono text-text-muted">{val?.substring(0, 8)}...</span>
+      ),
+    },
+    {
+      key: "service_type",
+      label: "Service",
+      sortable: true,
+      render: (val) => (
+        <span className="text-body-sm font-medium">{val || "—"}</span>
+      ),
+    },
+    {
+      key: "client_id",
+      label: "Client",
+      sortable: true,
+      render: (val) => {
+        const client = clients.find((c) => c.id === val);
+        return <span className="text-body-sm">{client?.name || "—"}</span>;
+      },
+    },
+    {
+      key: "job_date",
+      label: "Date",
+      sortable: true,
+      render: (val) => val ? new Date(val).toLocaleDateString() : "—",
+    },
+    {
+      key: "location",
+      label: "Location",
+      render: (val) => <span className="text-body-sm text-text-secondary truncate max-w-[180px] block">{val || "—"}</span>,
+    },
+    {
+      key: "status",
+      label: "Status",
+      sortable: true,
+      render: (val) => <StatusBadge status={val || "Created"} dot />,
+    },
+  ];
 
   return (
-    <div className="p-8 max-w-7xl mx-auto space-y-6 bg-slate-50 min-h-full font-sans relative">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900 mb-1">Job Execution Board</h1>
-          <p className="text-slate-500 text-sm">Monitor all field service operations, checklists, and sign-offs.</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <button className="flex items-center gap-2 px-4 py-2 bg-white border border-slate-200 rounded-lg text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
-            <Download className="w-4 h-4" /> Export CSV
+    <div className="p-6 max-w-[1300px] mx-auto space-y-5 pb-12">
+      <PageHeader
+        title="Job Management"
+        description="Track service jobs from creation through completion, inspection, and approval."
+        breadcrumbs={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: "Operations" },
+          { label: "Jobs" },
+        ]}
+        actions={
+          <button onClick={() => setShowAddModal(true)} className="btn btn-primary">
+            <Plus className="w-4 h-4" />
+            Create Job
           </button>
-          <button onClick={() => setShowModal(true)} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors shadow-sm">
-            <FileText className="w-4 h-4" /> Create Work Order
-          </button>
-        </div>
+        }
+      />
+
+      {/* Sub-navigation */}
+      <div className="flex items-center gap-5 border-b border-border">
+        <Link href="/dashboard/jobs" className="tab tab-active">All Jobs</Link>
+        <Link href="/dashboard/jobs/checklists" className="tab">Checklists</Link>
       </div>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-slate-200 flex justify-between items-center bg-slate-50">
-          <div className="relative w-96">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input 
-              type="text" 
-              placeholder="Search jobs by client, service, or assignee..." 
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 bg-white rounded-lg text-sm focus:outline-none focus:border-blue-500 shadow-sm"
-            />
-          </div>
-        </div>
-        
-        <table className="w-full text-left text-sm">
-          <thead className="bg-white border-b border-slate-200 text-slate-500 font-medium">
-            <tr>
-              <th className="px-6 py-4">Job #</th>
-              <th className="px-6 py-4">Client</th>
-              <th className="px-6 py-4">Service</th>
-              <th className="px-6 py-4">Status</th>
-              <th className="px-6 py-4">Assigned</th>
-              <th className="px-6 py-4">Date</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-100 bg-white">
-            {isLoading ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                  <Loader2 className="w-6 h-6 animate-spin mx-auto mb-2 text-blue-500" />
-                  Loading jobs...
-                </td>
-              </tr>
-            ) : filteredJobs.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-slate-500">
-                  No jobs found. Click "Create Work Order" to add a job.
-                </td>
-              </tr>
-            ) : filteredJobs.map((job) => (
-              <tr key={job.id} className="hover:bg-slate-50 transition-colors group">
-                <td className="px-6 py-4 font-semibold text-slate-900 font-mono">{job.id.split('-')[0].toUpperCase()}</td>
-                <td className="px-6 py-4 text-slate-700 font-medium">{job.client}</td>
-                <td className="px-6 py-4 text-slate-600">{job.service}</td>
-                <td className="px-6 py-4">
-                  <span className={`inline-flex items-center px-2.5 py-1 text-[11px] font-semibold rounded-full border ${getStatusStyle(job.status)}`}>
-                    {getStatusIcon(job.status)}
-                    {job.status}
-                  </span>
-                </td>
-                <td className="px-6 py-4 text-slate-700">{job.assigned || 'Unassigned'}</td>
-                <td className="px-6 py-4 text-slate-500">{job.job_date ? new Date(job.job_date).toLocaleDateString() : 'N/A'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {showModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-900">Create Work Order</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-slate-900"><X className="w-5 h-5"/></button>
-            </div>
-            
-            <form onSubmit={handleCreateJob} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Client Name</label>
-                <input required list="clients-list" type="text" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={formState.client} onChange={e => setFormState({...formState, client: e.target.value})} placeholder="Search or select client..." />
-                <datalist id="clients-list">
-                  {clients.map(c => <option key={c.id} value={c.name} />)}
-                </datalist>
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Service Type</label>
-                <input required list="services-list" type="text" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={formState.service} onChange={e => setFormState({...formState, service: e.target.value})} />
-                <datalist id="services-list">
-                  <option value="Standard Commercial Cleaning" />
-                  <option value="Deep Cleaning" />
-                  <option value="Move-In/Move-Out Cleaning" />
-                  <option value="Carpet Cleaning" />
-                  <option value="Window Washing" />
-                </datalist>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Assigned Worker</label>
-                <input required list="employees-list" type="text" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={formState.assigned} onChange={e => setFormState({...formState, assigned: e.target.value})} placeholder="Search or select employee..." />
-                <datalist id="employees-list">
-                  {employees.map(emp => <option key={emp.id} value={`${emp.users?.first_name} ${emp.users?.last_name}`} />)}
-                </datalist>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Status</label>
-                  <select className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={formState.status} onChange={e => setFormState({...formState, status: e.target.value})}>
-                    <option>In Progress</option>
-                    <option>Accepted</option>
-                    <option>Approved</option>
-                    <option>Closed</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Date</label>
-                  <input type="date" className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={formState.job_date} onChange={e => setFormState({...formState, job_date: e.target.value})} />
-                </div>
-              </div>
-
-              <div className="pt-4 flex justify-end gap-3">
-                <button type="button" onClick={() => setShowModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-                <button disabled={isAdding} type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-2">
-                  {isAdding ? <Loader2 className="w-4 h-4 animate-spin"/> : null}
-                  Save Work Order
-                </button>
-              </div>
-            </form>
-          </div>
+      {/* Metrics */}
+      {jobs.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <MetricCard label="Total Jobs" value={totalJobs} icon={<ClipboardList className="w-4 h-4" />} />
+          <MetricCard label="Active Jobs" value={activeJobs} icon={<Play className="w-4 h-4" />} />
+          <MetricCard label="Completed" value={completedJobs} icon={<CheckCircle2 className="w-4 h-4" />} />
+          <MetricCard
+            label="Completion Rate"
+            value={`${completionRate}%`}
+            icon={<Clock className="w-4 h-4" />}
+          />
         </div>
       )}
+
+      {/* Data Table */}
+      <DataTable
+        data={jobs}
+        columns={columns}
+        loading={loading}
+        emptyTitle="No jobs created yet"
+        emptyDescription="Create your first service job to start tracking field operations."
+        emptyAction={
+          <button onClick={() => setShowAddModal(true)} className="btn btn-primary btn-sm">
+            <Plus className="w-4 h-4" />
+            Create First Job
+          </button>
+        }
+        searchable
+        searchPlaceholder="Search jobs by service, location, status..."
+        searchKeys={["service_type", "location", "status", "notes"]}
+        exportable
+        selectable
+        onRowClick={(row) => router.push(`/dashboard/jobs/${row.id}`)}
+        rowActions={(row) => {
+          const allowed = VALID_TRANSITIONS[row.status] || [];
+          if (allowed.length === 0) return null;
+          return (
+            <div className="flex items-center gap-1">
+              {allowed.slice(0, 2).map((next) => (
+                <button
+                  key={next}
+                  onClick={() => handleStatusTransition(row.id, row.status, next)}
+                  className="btn btn-ghost btn-sm !text-caption text-primary-600"
+                  title={`Move to ${next}`}
+                >
+                  → {next}
+                </button>
+              ))}
+            </div>
+          );
+        }}
+      />
+
+      {/* Job Lifecycle Reference */}
+      <div className="scoms-panel p-4">
+        <h3 className="text-label font-medium text-text-muted uppercase tracking-wide mb-2">Job Lifecycle</h3>
+        <div className="flex items-center gap-1 flex-wrap text-caption text-text-muted">
+          {JOB_STATUSES.map((s, i) => (
+            <span key={s} className="flex items-center gap-1">
+              <StatusBadge status={s} size="sm" />
+              {i < JOB_STATUSES.length - 1 && <span className="text-text-disabled">→</span>}
+            </span>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Create Job Modal ────────────────────────────────────────── */}
+      <Modal
+        open={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        title="Create New Job"
+        description="Schedule a new service job."
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setShowAddModal(false)} disabled={saving}>Cancel</button>
+            <button className="btn btn-primary" onClick={handleAddJob} disabled={saving}>
+              {saving && <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+              Create Job
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleAddJob} className="space-y-4">
+          <FormField label="Client">
+            <select
+              className="input"
+              value={form.client_id}
+              onChange={(e) => setForm({ ...form, client_id: e.target.value })}
+            >
+              <option value="">Select client...</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Service Type" required>
+            <select
+              required
+              className="input"
+              value={form.service_type}
+              onChange={(e) => setForm({ ...form, service_type: e.target.value })}
+            >
+              <option value="Standard Commercial Cleaning">Standard Commercial Cleaning</option>
+              <option value="Deep Clean">Deep Clean</option>
+              <option value="Floor Care">Floor Care</option>
+              <option value="Window Cleaning">Window Cleaning</option>
+              <option value="Post-Construction">Post-Construction</option>
+              <option value="Medical Facility">Medical Facility</option>
+              <option value="Industrial">Industrial</option>
+              <option value="Emergency Clean">Emergency Clean</option>
+            </select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Job Date" required>
+              <input
+                required
+                type="date"
+                className="input"
+                value={form.job_date}
+                onChange={(e) => setForm({ ...form, job_date: e.target.value })}
+              />
+            </FormField>
+            <FormField label="Assigned To">
+              <select
+                className="input"
+                value={form.assigned_to}
+                onChange={(e) => setForm({ ...form, assigned_to: e.target.value })}
+              >
+                <option value="">Unassigned</option>
+                {employees.map((emp) => (
+                  <option key={emp.id} value={emp.id}>
+                    {emp.first_name} {emp.last_name}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+
+          <FormField label="Location">
+            <input
+              type="text"
+              className="input"
+              value={form.location}
+              onChange={(e) => setForm({ ...form, location: e.target.value })}
+              placeholder="Address or site name"
+            />
+          </FormField>
+
+          <FormField label="Notes">
+            <textarea
+              className="input !min-h-[80px]"
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+              placeholder="Special instructions, access codes, etc."
+            />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 }

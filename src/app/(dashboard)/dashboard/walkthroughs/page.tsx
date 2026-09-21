@@ -1,358 +1,569 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
-import { 
-  ClipboardCheck, User, Building2, MapPin,
-  Camera, Mic, ShieldAlert, Sparkles, CheckCircle2,
-  FileText, Plus, ChevronRight, Loader2
+import { PageHeader, StatusBadge, Modal, FormField, MetricCard } from "@/components/ui";
+import { DataTable, type Column } from "@/components/ui/DataTable";
+import {
+  ClipboardCheck,
+  Building2,
+  Sparkles,
+  CheckCircle2,
+  Plus,
+  ChevronRight,
+  ArrowRight,
+  ShieldAlert,
+  Camera,
+  Layers,
+  Calculator,
 } from "lucide-react";
+import Link from "next/link";
+
+interface Walkthrough {
+  id: string;
+  lead_id?: string;
+  facility_type?: string;
+  total_sqft?: number;
+  cleanable_sqft?: number;
+  status: string;
+  created_at: string;
+  leads?: { company_name?: string };
+  [key: string]: any;
+}
 
 export default function WalkthroughModule() {
-  const [assessments, setAssessments] = useState<any[]>([]);
+  const [assessments, setAssessments] = useState<Walkthrough[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeStep, setActiveStep] = useState(1);
   const [showNewModal, setShowNewModal] = useState(false);
   const [leads, setLeads] = useState<any[]>([]);
-  const [selectedLeadId, setSelectedLeadId] = useState('');
-  const [facilityType, setFacilityType] = useState('');
-  const [totalSqft, setTotalSqft] = useState('');
-  const [cleanableSqft, setCleanableSqft] = useState('');
+  const [selectedLeadId, setSelectedLeadId] = useState("");
+  const [facilityType, setFacilityType] = useState("Commercial Office");
+  const [totalSqft, setTotalSqft] = useState("");
+  const [cleanableSqft, setCleanableSqft] = useState("");
   const [formSaving, setFormSaving] = useState(false);
-  const [selectedWalkthrough, setSelectedWalkthrough] = useState<any>(null);
+  const [selectedWalkthrough, setSelectedWalkthrough] = useState<Walkthrough | null>(null);
 
-  const fetchAssessments = async () => {
+  const fetchAssessments = useCallback(async () => {
     setLoading(true);
-    const { data } = await supabase
-      .from('walkthrough_assessments')
-      .select('*, leads(company_name)')
-      .order('created_at', { ascending: false });
-    setAssessments(data ?? []);
-    setLoading(false);
-  };
+    try {
+      const { data } = await supabase
+        .from("walkthrough_assessments")
+        .select("*, leads(company_name)")
+        .order("created_at", { ascending: false });
+      setAssessments(data ?? []);
+    } catch (err) {
+      console.error("Failed to load assessments:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const fetchLeads = useCallback(async () => {
+    try {
+      const { data } = await supabase
+        .from("leads")
+        .select("id, company_name, first_name, last_name, facility_type")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      setLeads(data ?? []);
+    } catch (err) {
+      console.error("Failed to load leads:", err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchAssessments();
-  }, []);
+    fetchLeads();
+  }, [fetchAssessments, fetchLeads]);
 
-  const fetchLeads = async () => {
-    const { data } = await supabase
-      .from('leads')
-      .select('id, company_name, first_name, last_name, facility_type')
-      .in('status', ['new','contacted','qualified','walkthrough_scheduled'])
-      .order('created_at', { ascending: false })
-      .limit(50);
-    setLeads(data ?? []);
-  };
+  const metrics = useMemo(() => {
+    const total = assessments.length;
+    const completed = assessments.filter((a) => a.status === "Completed").length;
+    const inProgress = assessments.filter((a) => a.status === "In Progress" || a.status === "Draft").length;
+    const totalSqftAssessed = assessments.reduce((acc, a) => acc + (a.cleanable_sqft || 0), 0);
+
+    return {
+      total,
+      completed,
+      inProgress,
+      totalSqft: totalSqftAssessed > 0 ? `${(totalSqftAssessed / 1000).toFixed(0)}k sq ft` : "0 sq ft",
+    };
+  }, [assessments]);
 
   const handleCreateWalkthrough = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedLeadId) return;
     setFormSaving(true);
-    await supabase.from('walkthrough_assessments').insert([{
-      lead_id: selectedLeadId,
-      facility_type: facilityType || null,
-      total_sqft: totalSqft ? parseInt(totalSqft) : null,
-      cleanable_sqft: cleanableSqft ? parseInt(cleanableSqft) : null,
-      status: 'Draft',
-    }]);
-    setShowNewModal(false);
-    setSelectedLeadId('');
-    setFacilityType('');
-    setTotalSqft('');
-    setCleanableSqft('');
-    setFormSaving(false);
-    fetchAssessments();
+    try {
+      const { error } = await supabase.from("walkthrough_assessments").insert([
+        {
+          lead_id: selectedLeadId,
+          facility_type: facilityType || null,
+          total_sqft: totalSqft ? parseInt(totalSqft) : null,
+          cleanable_sqft: cleanableSqft ? parseInt(cleanableSqft) : null,
+          status: "Draft",
+        },
+      ]);
+      if (error) throw error;
+
+      setShowNewModal(false);
+      setSelectedLeadId("");
+      setFacilityType("Commercial Office");
+      setTotalSqft("");
+      setCleanableSqft("");
+      fetchAssessments();
+    } catch (err: any) {
+      alert("Error initiating walkthrough: " + err.message);
+    } finally {
+      setFormSaving(false);
+    }
   };
 
-  // Render the Walkthrough Wizard
+  // If in interactive assessment wizard
   if (selectedWalkthrough) {
     return (
-      <div className="p-4 md:p-8 max-w-[1000px] mx-auto space-y-6 font-sans pb-24">
-        {/* Wizard Header */}
-        <div className="flex justify-between items-center mb-8">
+      <div className="space-y-6 max-w-4xl mx-auto">
+        <div className="flex items-center justify-between pb-4 border-b border-border">
           <div>
-            <button onClick={() => setSelectedWalkthrough(null)} className="text-indigo-600 font-bold text-sm hover:underline mb-2">&larr; Back to Walkthroughs</button>
-            <h1 className="text-2xl font-bold font-display text-slate-900">
-              Facility Assessment: {selectedWalkthrough.leads?.company_name || 'New Client'}
+            <button
+              onClick={() => setSelectedWalkthrough(null)}
+              className="text-primary-600 hover:text-primary-700 text-caption font-semibold flex items-center gap-1 mb-1"
+            >
+              &larr; Return to Assessments
+            </button>
+            <h1 className="text-title-lg font-bold text-text-primary">
+              Facility Walkthrough: {selectedWalkthrough.leads?.company_name || "Enterprise Facility"}
             </h1>
-            <p className="text-slate-500 font-medium">{selectedWalkthrough.facility_type} • {selectedWalkthrough.cleanable_sqft?.toLocaleString() || 0} Sq Ft</p>
+            <p className="text-caption text-text-muted mt-0.5">
+              {selectedWalkthrough.facility_type || "Facility"} •{" "}
+              {selectedWalkthrough.cleanable_sqft ? selectedWalkthrough.cleanable_sqft.toLocaleString() : 0} Cleanable Sq Ft
+            </p>
           </div>
-          <div className="flex items-center gap-2 bg-indigo-50 text-indigo-700 px-4 py-2 rounded-lg font-bold shadow-sm">
-            <Sparkles className="w-5 h-5" /> AI Assisted
+          <div className="badge badge-primary flex items-center gap-1.5 px-3 py-1.5">
+            <Sparkles className="w-4 h-4 text-primary-600" />
+            <span className="font-semibold text-caption">AI Specification Ready</span>
           </div>
         </div>
 
-        {/* Wizard Progress */}
-        <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-slate-200 shadow-sm mb-6">
-          {['Customer Discovery', 'Scope & Facility', 'Security & Risk', 'AI Review'].map((step, idx) => (
-            <div key={step} className="flex items-center gap-3">
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm transition-colors ${
-                activeStep > idx + 1 ? 'bg-emerald-500 text-white' : 
-                activeStep === idx + 1 ? 'bg-indigo-600 text-white' : 
-                'bg-slate-100 text-slate-400'
-              }`}>
-                {activeStep > idx + 1 ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+        {/* Wizard Progress Bar */}
+        <div className="card p-3 flex justify-between items-center">
+          {["1. Discovery", "2. Scope & Flooring", "3. Security & Access", "4. AI Estimator"].map(
+            (step, idx) => (
+              <div key={step} className="flex items-center gap-2">
+                <div
+                  className={`w-7 h-7 rounded-full flex items-center justify-center text-caption font-bold ${
+                    activeStep > idx + 1
+                      ? "bg-success-600 text-white"
+                      : activeStep === idx + 1
+                      ? "bg-primary-600 text-white"
+                      : "bg-surface-hover text-text-muted"
+                  }`}
+                >
+                  {activeStep > idx + 1 ? <CheckCircle2 className="w-4 h-4" /> : idx + 1}
+                </div>
+                <span
+                  className={`text-caption font-semibold hidden md:inline ${
+                    activeStep === idx + 1 ? "text-primary-600" : "text-text-secondary"
+                  }`}
+                >
+                  {step}
+                </span>
+                {idx < 3 && <ChevronRight className="w-4 h-4 text-text-muted/40 mx-2" />}
               </div>
-              <span className={`font-semibold text-sm hidden md:block ${activeStep === idx + 1 ? 'text-indigo-600' : 'text-slate-500'}`}>{step}</span>
-              {idx < 3 && <ChevronRight className="w-4 h-4 text-slate-300 mx-2" />}
-            </div>
-          ))}
+            )
+          )}
         </div>
 
         {/* Step 1: Customer Discovery */}
         {activeStep === 1 && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
-            <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-4">1. Customer Discovery Questionnaire</h2>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2 col-span-2">
-                <label className="text-sm font-semibold text-slate-700">What are the current cleaning challenges?</label>
-                <textarea className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-indigo-500 focus:outline-none min-h-[100px]" placeholder="e.g. Current vendor keeps missing the executive restrooms..."></textarea>
-                <div className="flex justify-end">
-                  <button className="flex items-center gap-1.5 text-xs font-bold text-indigo-600 bg-indigo-50 px-3 py-1.5 rounded-md hover:bg-indigo-100 transition-colors">
-                    <Mic className="w-3 h-3" /> Voice to Text (AI)
-                  </button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Budget Range</label>
-                <input type="text" className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="$5,000 - $7,000 / mo" />
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Decision Timeline</label>
-                <input type="text" className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-indigo-500 focus:outline-none" placeholder="Looking to start next month" />
-              </div>
+          <div className="card p-6 space-y-5">
+            <h2 className="text-title-sm font-bold text-text-primary pb-3 border-b border-border">
+              Customer Pain Points & Operational Challenges
+            </h2>
+            <FormField label="What are the current facility deficiencies or contractor issues?">
+              <textarea
+                className="form-input h-24 resize-none"
+                placeholder="e.g. Previous vendor inconsistent with cleanroom trash protocols and floor scrubbing..."
+              />
+            </FormField>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Client Target Monthly Budget ($)">
+                <input type="text" className="form-input" placeholder="e.g. $8,500 - $12,000 / mo" />
+              </FormField>
+              <FormField label="Projected Contract Start Date">
+                <input type="date" className="form-input" />
+              </FormField>
             </div>
-            
-            <div className="flex justify-end pt-4">
-              <button onClick={() => setActiveStep(2)} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Next Step: Scope & Facility</button>
+            <div className="flex justify-end pt-3">
+              <button
+                onClick={() => setActiveStep(2)}
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+              >
+                Next: Scope & Facility <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Step 2: Facility */}
+        {/* Step 2: Scope & Facility */}
         {activeStep === 2 && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
-            <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-4">2. Facility Assessment</h2>
-            
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Total Cleanable Square Footage</label>
-                <input type="number" defaultValue={selectedWalkthrough.cleanable_sqft} className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-indigo-500 focus:outline-none" />
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-semibold text-slate-700">Facility Type</label>
-                <select className="w-full border border-slate-200 rounded-lg p-3 text-sm focus:border-indigo-500 focus:outline-none">
-                  <option>Medical / Healthcare</option>
-                  <option>Industrial / Warehouse</option>
-                  <option>General Office</option>
-                  <option>Educational</option>
+          <div className="card p-6 space-y-5">
+            <h2 className="text-title-sm font-bold text-text-primary pb-3 border-b border-border">
+              Facility Specifications & Surface Breakdown
+            </h2>
+            <div className="grid grid-cols-2 gap-4">
+              <FormField label="Total Cleanable Square Footage">
+                <input
+                  type="number"
+                  className="form-input"
+                  defaultValue={selectedWalkthrough.cleanable_sqft || 25000}
+                />
+              </FormField>
+              <FormField label="Facility Classification">
+                <select className="form-input">
+                  <option>Cleanroom / Laboratory</option>
+                  <option>Medical & Healthcare Facility</option>
+                  <option>Industrial & Logistics Center</option>
+                  <option>Corporate Headquarters</option>
                 </select>
-              </div>
+              </FormField>
             </div>
-
-            <div className="border border-dashed border-slate-300 rounded-xl p-8 text-center bg-slate-50">
-              <Camera className="w-8 h-8 text-slate-400 mx-auto mb-3" />
-              <h3 className="font-bold text-slate-700">Upload Floor Plans or Photos</h3>
-              <p className="text-sm text-slate-500 mt-1 mb-4">AI will automatically analyze room types and flooring surfaces.</p>
-              <button className="bg-white border border-slate-200 px-4 py-2 rounded-lg text-sm font-semibold shadow-sm hover:bg-slate-50">Choose Files</button>
+            <div className="border border-dashed border-border rounded-xl p-8 text-center bg-surface-hover">
+              <Camera className="w-8 h-8 text-text-muted mx-auto mb-2" />
+              <h4 className="font-semibold text-text-primary text-body-sm">
+                Facility Photos & Architectural Plans
+              </h4>
+              <p className="text-caption text-text-muted mt-0.5">
+                AI analyzes high-traffic choke points and flooring materials automatically.
+              </p>
             </div>
-
-            <div className="flex justify-between pt-4">
-              <button onClick={() => setActiveStep(1)} className="text-slate-500 font-bold hover:text-slate-900">Back</button>
-              <button onClick={() => setActiveStep(3)} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Next Step: Security & Risk</button>
+            <div className="flex justify-between pt-3">
+              <button onClick={() => setActiveStep(1)} className="btn btn-secondary btn-sm">
+                Back
+              </button>
+              <button
+                onClick={() => setActiveStep(3)}
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+              >
+                Next: Security Protocol <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Security & Risk */}
+        {/* Step 3: Security & Access */}
         {activeStep === 3 && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
-            <h2 className="text-xl font-bold text-slate-900 border-b border-slate-100 pb-4">3. Security & Risk Assessment</h2>
-            
-            <div className="space-y-4">
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" />
+          <div className="card p-6 space-y-5">
+            <h2 className="text-title-sm font-bold text-text-primary pb-3 border-b border-border">
+              Site Clearance & Compliance Requirements
+            </h2>
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-surface hover:bg-surface-hover cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded text-primary-600" defaultChecked />
                 <div>
-                  <div className="font-bold text-slate-900">Requires Security Clearance</div>
-                  <div className="text-sm text-slate-500">Staff must pass background checks or clearance prior to entry.</div>
+                  <p className="text-body-sm font-semibold text-text-primary">
+                    Security Clearance / Background Checks Required
+                  </p>
+                  <p className="text-caption text-text-muted">
+                    Crew must pass 10-panel drug test and federal background verification.
+                  </p>
                 </div>
               </label>
 
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" />
+              <label className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-surface hover:bg-surface-hover cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded text-primary-600" defaultChecked />
                 <div>
-                  <div className="font-bold text-slate-900">Hazardous Materials Present</div>
-                  <div className="text-sm text-slate-500">Requires specialized PPE and OSHA compliance training.</div>
+                  <p className="text-body-sm font-semibold text-text-primary">
+                    Hazmat or Biohazard Disposal Protocol
+                  </p>
+                  <p className="text-caption text-text-muted">
+                    Mandatory bloodborne pathogen certification & specialized chemical handling.
+                  </p>
                 </div>
               </label>
 
-              <label className="flex items-center gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 cursor-pointer">
-                <input type="checkbox" className="w-5 h-5 text-indigo-600 border-slate-300 rounded focus:ring-indigo-500" />
+              <label className="flex items-center gap-3 p-3.5 rounded-lg border border-border bg-surface hover:bg-surface-hover cursor-pointer">
+                <input type="checkbox" className="w-4 h-4 rounded text-primary-600" />
                 <div>
-                  <div className="font-bold text-slate-900">Alarm Code / Key Access Required</div>
-                  <div className="text-sm text-slate-500">Secure key management protocols required for entry.</div>
+                  <p className="text-body-sm font-semibold text-text-primary">
+                    Keycard & Key Fob Controlled Access
+                  </p>
+                  <p className="text-caption text-text-muted">
+                    Requires badge log-in / log-out verification at security desk.
+                  </p>
                 </div>
               </label>
             </div>
 
-            <div className="flex justify-between pt-4">
-              <button onClick={() => setActiveStep(2)} className="text-slate-500 font-bold hover:text-slate-900">Back</button>
-              <button onClick={() => setActiveStep(4)} className="bg-indigo-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-indigo-700 transition-colors">Review & Submit</button>
+            <div className="flex justify-between pt-3">
+              <button onClick={() => setActiveStep(2)} className="btn btn-secondary btn-sm">
+                Back
+              </button>
+              <button
+                onClick={() => setActiveStep(4)}
+                className="btn btn-primary btn-sm flex items-center gap-1.5"
+              >
+                Review & AI Synthesis <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         )}
 
         {/* Step 4: AI Review */}
         {activeStep === 4 && (
-          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-8 space-y-6">
-            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-              <Sparkles className="w-6 h-6 text-indigo-600" />
-              <h2 className="text-xl font-bold text-slate-900">4. AI Review & Summary</h2>
-            </div>
-
-            <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-xl">
-              <h3 className="font-bold text-indigo-900 mb-2">AI Assessment Completeness: 92%</h3>
-              <div className="w-full bg-indigo-200 rounded-full h-2.5 mb-4">
-                <div className="bg-indigo-600 h-2.5 rounded-full" style={{ width: '92%' }}></div>
+          <div className="card p-6 space-y-5">
+            <h2 className="text-title-sm font-bold text-text-primary pb-3 border-b border-border flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-primary-600" />
+              AI Scope & Labor Model Synthesis
+            </h2>
+            <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-200 dark:border-primary-800 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-body-sm font-bold text-primary-700 dark:text-primary-300">
+                  Assessment Verification Score: 96%
+                </span>
+                <span className="badge badge-success">Sufficient Data</span>
               </div>
-              <p className="text-sm text-indigo-800">
-                The facility data looks complete. Based on the industrial facility type and 38,000 sq ft, 
-                this aligns perfectly with the standard production cleaning templates. I have prepared the 
-                data for the AI Bid Calculator.
+              <p className="text-caption text-text-secondary leading-relaxed">
+                Facility parameters verified. Cleanable square footage, security clearance tiers, and
+                sanitization frequency are mapped to production rate models. This record is ready for
+                automatic calculation in the Bid Estimator.
               </p>
             </div>
-
-            <div className="flex justify-between pt-4">
-              <button onClick={() => setActiveStep(3)} className="text-slate-500 font-bold hover:text-slate-900">Back</button>
-              <button onClick={() => setSelectedWalkthrough(null)} className="bg-emerald-600 text-white px-6 py-2.5 rounded-lg font-bold hover:bg-emerald-700 transition-colors flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4" /> Send to AI Bid Calculator
+            <div className="flex justify-between pt-3">
+              <button onClick={() => setActiveStep(3)} className="btn btn-secondary btn-sm">
+                Back
               </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setSelectedWalkthrough(null)}
+                  className="btn btn-secondary btn-sm"
+                >
+                  Save Assessment
+                </button>
+                <Link
+                  href="/dashboard/bid-calculator"
+                  className="btn btn-primary btn-sm flex items-center gap-1.5"
+                >
+                  <Calculator className="w-4 h-4" /> Open in Bid Calculator
+                </Link>
+              </div>
             </div>
           </div>
         )}
-
       </div>
     );
   }
 
-  // Render the Walkthrough Dashboard (List)
-  return (
-    <div className="p-8 max-w-[1400px] mx-auto space-y-8 font-sans pb-24">
-      <div className="flex justify-between items-end">
+  // Walkthrough List View
+  const columns: Column<Walkthrough>[] = [
+    {
+      key: "leads",
+      header: "Lead / Prospect",
+      sortable: true,
+      render: (w) => (
         <div>
-          <div className="flex items-center gap-3 mb-2">
-            <div className="p-2 bg-indigo-100 rounded-lg">
-              <ClipboardCheck className="w-6 h-6 text-indigo-600" />
-            </div>
-            <h1 className="text-3xl font-bold font-display text-slate-900 tracking-tight">Facility Walkthroughs</h1>
-          </div>
-          <p className="text-slate-500 font-medium">Standardized AI-assisted site assessments for estimators and field agents.</p>
+          <span className="font-semibold text-text-primary block text-body-sm">
+            {w.leads?.company_name || "General Facility"}
+          </span>
+          <span className="text-caption text-text-muted">{w.facility_type || "Commercial Site"}</span>
         </div>
-        <button onClick={() => { setShowNewModal(true); fetchLeads(); }} className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 transition-colors shadow-sm">
-          <Plus className="w-4 h-4" /> New Walkthrough
+      ),
+    },
+    {
+      key: "cleanable_sqft",
+      header: "Cleanable Sq Ft",
+      sortable: true,
+      render: (w) => (
+        <span className="font-medium text-text-primary text-body-sm">
+          {w.cleanable_sqft ? `${w.cleanable_sqft.toLocaleString()} sq ft` : "—"}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: true,
+      render: (w) => (
+        <StatusBadge
+          status={w.status === "Completed" ? "Active" : "Draft"}
+          label={w.status || "DRAFT"}
+        />
+      ),
+    },
+    {
+      key: "created_at",
+      header: "Assessment Date",
+      sortable: true,
+      render: (w) => (
+        <span className="text-caption text-text-muted">
+          {new Date(w.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (w) => (
+        <button
+          onClick={() => {
+            setSelectedWalkthrough(w);
+            setActiveStep(1);
+          }}
+          className="btn btn-secondary btn-sm text-[11px] px-2.5 py-1 flex items-center gap-1"
+        >
+          Conduct Audit <ChevronRight className="w-3.5 h-3.5" />
         </button>
+      ),
+    },
+  ];
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Site Walkthroughs & Facility Audits"
+        description="On-site facility evaluations, square footage measurements, cleanroom classification, and scope auditing"
+        breadcrumbs={[
+          { label: "Commercial", href: "/dashboard/leads" },
+          { label: "Walkthroughs" },
+        ]}
+        actions={
+          <button
+            onClick={() => setShowNewModal(true)}
+            className="btn btn-primary btn-sm flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> New Walkthrough
+          </button>
+        }
+      />
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MetricCard
+          title="Total Walkthroughs"
+          value={metrics.total}
+          subtitle="All facility assessments"
+          icon={<ClipboardCheck className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Completed Audits"
+          value={metrics.completed}
+          subtitle="Ready for commercial proposal"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="In Progress / Draft"
+          value={metrics.inProgress}
+          subtitle="Awaiting site visit"
+          icon={<Building2 className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Assessed Surface Area"
+          value={metrics.totalSqft}
+          subtitle="Total cleanable square feet"
+          icon={<Layers className="w-5 h-5" />}
+        />
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {loading ? (
-          <div className="col-span-3 text-center py-12"><Loader2 className="w-8 h-8 animate-spin text-indigo-500 mx-auto" /></div>
-        ) : assessments.length === 0 ? (
-          <div className="col-span-3 bg-white border border-dashed border-slate-300 rounded-2xl p-12 text-center">
-            <ClipboardCheck className="w-10 h-10 text-slate-300 mx-auto mb-4" />
-            <h4 className="font-bold text-slate-700">No Walkthroughs Found</h4>
-            <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto">Click "New Walkthrough" to start a site assessment for a new lead.</p>
-          </div>
-        ) : assessments.map(assessment => (
-          <div key={assessment.id} className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col justify-between group">
-            <div>
-              <div className="flex justify-between items-start mb-4">
-                <span className={`px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider ${
-                  assessment.status === 'Completed' ? 'bg-emerald-100 text-emerald-700' :
-                  assessment.status === 'In Progress' ? 'bg-amber-100 text-amber-700' :
-                  'bg-slate-100 text-slate-600'
-                }`}>
-                  {assessment.status}
-                </span>
-                {assessment.ai_completeness_score && (
-                  <span className="flex items-center gap-1 text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md">
-                    <Sparkles className="w-3 h-3" /> {assessment.ai_completeness_score}% Ready
-                  </span>
-                )}
-              </div>
-              <h3 className="font-bold text-lg text-slate-900 mb-1">{assessment.leads?.company_name || 'Unknown Client'}</h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500 mb-4 font-medium">
-                <span className="flex items-center gap-1"><Building2 className="w-3 h-3" /> {assessment.facility_type || 'TBD'}</span>
-                <span>•</span>
-                <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {(assessment.cleanable_sqft || 0).toLocaleString()} Sq Ft</span>
-              </div>
-            </div>
-            <button 
-              onClick={() => { setSelectedWalkthrough(assessment); setActiveStep(1); }}
-              className="w-full bg-slate-50 hover:bg-indigo-50 text-indigo-600 font-bold text-sm py-2.5 rounded-lg transition-colors border border-slate-200 hover:border-indigo-200"
-            >
-              Open Assessment
-            </button>
-          </div>
-        ))}
-      </div>
+      {/* Walkthroughs Table */}
+      <DataTable
+        data={assessments}
+        columns={columns}
+        loading={loading}
+        searchable={true}
+        searchPlaceholder="Search assessments by company, facility..."
+        searchKeys={["facility_type"]}
+        emptyTitle="No Walkthrough Assessments"
+        emptyDescription="Facility site visits and scope measurements will appear here."
+        emptyAction={
+          <button onClick={() => setShowNewModal(true)} className="btn btn-primary btn-sm">
+            <Plus className="w-4 h-4 mr-1.5" /> Start New Walkthrough
+          </button>
+        }
+      />
+
       {/* New Walkthrough Modal */}
-      {showNewModal && (
-        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl p-6">
-            <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-slate-900">New Walkthrough</h3>
-              <button onClick={() => setShowNewModal(false)} className="text-slate-400 hover:text-slate-900">✕</button>
-            </div>
-            <form onSubmit={handleCreateWalkthrough} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Select Lead <span className="text-red-500">*</span></label>
-                <select required value={selectedLeadId} onChange={e => setSelectedLeadId(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                  <option value="">Select a lead...</option>
-                  {leads.map(l => (
-                    <option key={l.id} value={l.id}>
-                      {l.company_name}{l.first_name ? ` — ${l.first_name} ${l.last_name ?? ''}` : ''}
-                    </option>
-                  ))}
-                </select>
-                {leads.length === 0 && <p className="text-xs text-slate-400 mt-1">No open leads found. Create a lead first.</p>}
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Facility Type</label>
-                <select value={facilityType} onChange={e => setFacilityType(e.target.value)}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500">
-                  <option value="">Select...</option>
-                  {['Office','Medical / Healthcare','Industrial / Warehouse','Educational','Government','Retail','Other'].map(t => <option key={t}>{t}</option>)}
-                </select>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Total Sqft</label>
-                  <input type="number" min="0" value={totalSqft} onChange={e => setTotalSqft(e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Cleanable Sqft</label>
-                  <input type="number" min="0" value={cleanableSqft} onChange={e => setCleanableSqft(e.target.value)}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-indigo-500" />
-                </div>
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowNewModal(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-                <button type="submit" disabled={formSaving || !selectedLeadId}
-                  className="bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-semibold hover:bg-indigo-700 transition-colors flex items-center gap-2 disabled:opacity-50">
-                  {formSaving && <Loader2 className="w-4 h-4 animate-spin" />} Create
-                </button>
-              </div>
-            </form>
+      <Modal
+        open={showNewModal}
+        onClose={() => setShowNewModal(false)}
+        title="Schedule Facility Walkthrough"
+        description="Select a prospect to initiate an on-site audit."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowNewModal(false)}
+              className="btn btn-secondary btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="walkthrough-form"
+              disabled={formSaving}
+              className="btn btn-primary btn-sm"
+            >
+              {formSaving ? "Starting..." : "Begin Walkthrough"}
+            </button>
+          </>
+        }
+      >
+        <form id="walkthrough-form" onSubmit={handleCreateWalkthrough} className="space-y-4">
+          <FormField label="Prospect / Lead Account" required>
+            <select
+              required
+              className="form-input"
+              value={selectedLeadId}
+              onChange={(e) => setSelectedLeadId(e.target.value)}
+            >
+              <option value="">Select target lead...</option>
+              {leads.map((l) => (
+                <option key={l.id} value={l.id}>
+                  {l.company_name} ({l.first_name} {l.last_name})
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Facility Classification" required>
+            <select
+              className="form-input"
+              value={facilityType}
+              onChange={(e) => setFacilityType(e.target.value)}
+            >
+              <option value="Commercial Office">Commercial Office</option>
+              <option value="Medical / Healthcare">Medical / Healthcare</option>
+              <option value="Industrial / Warehouse">Industrial / Warehouse</option>
+              <option value="Cleanroom / Laboratory">Cleanroom / Laboratory</option>
+              <option value="Educational / Campus">Educational / Campus</option>
+            </select>
+          </FormField>
+
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Total Gross Sq Ft">
+              <input
+                type="number"
+                className="form-input"
+                placeholder="50000"
+                value={totalSqft}
+                onChange={(e) => setTotalSqft(e.target.value)}
+              />
+            </FormField>
+
+            <FormField label="Cleanable Sq Ft" required>
+              <input
+                type="number"
+                required
+                className="form-input"
+                placeholder="42000"
+                value={cleanableSqft}
+                onChange={(e) => setCleanableSqft(e.target.value)}
+              />
+            </FormField>
           </div>
-        </div>
-      )}
+        </form>
+      </Modal>
     </div>
   );
 }

@@ -1,11 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect, useCallback } from 'react';
-import { supabase } from '@/lib/supabase';
+import React, { useState, useEffect, useCallback, useMemo } from "react";
+import { supabase } from "@/lib/supabase";
+import { PageHeader, StatusBadge, Modal, FormField, MetricCard } from "@/components/ui";
+import { DataTable, type Column } from "@/components/ui/DataTable";
 import {
-  Package, Plus, Search, Loader2, X, AlertCircle, Save,
-  CheckCircle2, Clock, AlertTriangle, ChevronDown, ChevronUp, Filter
-} from 'lucide-react';
+  Package,
+  Plus,
+  CheckCircle2,
+  Clock,
+  AlertTriangle,
+  ArrowRight,
+  Truck,
+  Boxes,
+} from "lucide-react";
 
 interface SupplyRequest {
   id: string;
@@ -13,284 +21,385 @@ interface SupplyRequest {
   item_name: string;
   quantity: number;
   unit: string | null;
-  priority: 'low' | 'normal' | 'high' | 'urgent';
-  status: 'pending' | 'approved' | 'ordered' | 'delivered' | 'cancelled';
+  priority: "low" | "normal" | "high" | "urgent" | string;
+  status: "pending" | "approved" | "ordered" | "delivered" | "cancelled" | string;
   location_note: string | null;
   notes: string | null;
   created_at: string;
   approved_at: string | null;
+  [key: string]: any;
 }
 
-const PRIORITY_STYLES: Record<string, string> = {
-  low: 'bg-slate-100 text-slate-600',
-  normal: 'bg-blue-100 text-blue-700',
-  high: 'bg-orange-100 text-orange-700',
-  urgent: 'bg-red-100 text-red-700',
-};
-
-const STATUS_STYLES: Record<string, string> = {
-  pending: 'bg-amber-100 text-amber-700',
-  approved: 'bg-blue-100 text-blue-700',
-  ordered: 'bg-indigo-100 text-indigo-700',
-  delivered: 'bg-emerald-100 text-emerald-700',
-  cancelled: 'bg-slate-100 text-slate-500',
-};
-
 const STATUS_FLOW: Record<string, string> = {
-  pending: 'approved',
-  approved: 'ordered',
-  ordered: 'delivered',
+  pending: "approved",
+  approved: "ordered",
+  ordered: "delivered",
 };
 
 export default function SupplyManagementPage() {
   const [requests, setRequests] = useState<SupplyRequest[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [filterStatus, setFilterStatus] = useState('all');
-  const [filterPriority, setFilterPriority] = useState('all');
-  const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [form, setForm] = useState({ item_name: '', quantity: '1', unit: '', priority: 'normal', location_note: '', notes: '' });
+  const [form, setForm] = useState({
+    item_name: "",
+    quantity: "1",
+    unit: "cases",
+    priority: "normal",
+    location_note: "",
+    notes: "",
+  });
 
   const fetchRequests = useCallback(async () => {
     setLoading(true);
     try {
-      let q = supabase.from('supply_requests').select('*').order('created_at', { ascending: false });
-      if (filterStatus !== 'all') q = q.eq('status', filterStatus);
-      if (filterPriority !== 'all') q = q.eq('priority', filterPriority);
-      const { data, error: err } = await q;
-      if (err) throw err;
-      setRequests(data ?? []);
-    } catch (e: any) { setError(e.message); }
-    finally { setLoading(false); }
-  }, [filterStatus, filterPriority]);
+      const { data, error } = await supabase
+        .from("supply_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
 
-  useEffect(() => { fetchRequests(); }, [fetchRequests]);
+      if (error) throw error;
+      setRequests(data ?? []);
+    } catch (err: any) {
+      console.error("Failed to load supply requests:", err.message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRequests();
+  }, [fetchRequests]);
+
+  const metrics = useMemo(() => {
+    const total = requests.length;
+    const pending = requests.filter((r) => r.status === "pending").length;
+    const activePipeline = requests.filter((r) => r.status === "approved" || r.status === "ordered").length;
+    const urgentCount = requests.filter((r) => r.priority === "urgent" && r.status !== "delivered").length;
+
+    return { total, pending, activePipeline, urgentCount };
+  }, [requests]);
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.item_name.trim()) return;
     setCreating(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      const { data: profile } = await supabase.from('users').select('tenant_id').eq('id', user!.id).single();
-      const { data: emp } = await supabase.from('employees').select('id').eq('user_id', user!.id).single();
       const reqNum = `SR-${Date.now().toString().slice(-6)}`;
-      const { error: err } = await supabase.from('supply_requests').insert({
+      const payload = {
         item_name: form.item_name.trim(),
         quantity: parseInt(form.quantity) || 1,
         unit: form.unit || null,
         priority: form.priority,
         location_note: form.location_note || null,
         notes: form.notes || null,
-        status: 'pending',
+        status: "pending",
         request_number: reqNum,
-        requested_by: emp?.id ?? null,
-        tenant_id: profile?.tenant_id,
-      });
-      if (err) throw err;
+        created_at: new Date().toISOString(),
+      };
+
+      const { error } = await supabase.from("supply_requests").insert([payload]);
+      if (error) throw error;
+
       setShowCreate(false);
-      setForm({ item_name: '', quantity: '1', unit: '', priority: 'normal', location_note: '', notes: '' });
+      setForm({
+        item_name: "",
+        quantity: "1",
+        unit: "cases",
+        priority: "normal",
+        location_note: "",
+        notes: "",
+      });
       fetchRequests();
-    } catch (e: any) { setError(e.message); }
-    finally { setCreating(false); }
+    } catch (err: any) {
+      alert("Error submitting request: " + err.message);
+    } finally {
+      setCreating(false);
+    }
   };
 
   const advanceStatus = async (req: SupplyRequest) => {
     const next = STATUS_FLOW[req.status];
     if (!next) return;
-    const { data: { user } } = await supabase.auth.getUser();
-    await supabase.from('supply_requests').update({
-      status: next,
-      ...(next === 'approved' ? { approved_by: user!.id, approved_at: new Date().toISOString() } : {}),
-    }).eq('id', req.id);
-    fetchRequests();
+
+    try {
+      const updates: any = { status: next };
+      if (next === "approved") updates.approved_at = new Date().toISOString();
+
+      const { error } = await supabase
+        .from("supply_requests")
+        .update(updates)
+        .eq("id", req.id);
+
+      if (error) throw error;
+      setRequests((prev) =>
+        prev.map((r) => (r.id === req.id ? { ...r, ...updates } : r))
+      );
+    } catch (err: any) {
+      alert("Status advance failed: " + err.message);
+    }
   };
 
-  const cancelRequest = async (id: string) => {
-    await supabase.from('supply_requests').update({ status: 'cancelled' }).eq('id', id);
-    fetchRequests();
-  };
+  const columns: Column<SupplyRequest>[] = [
+    {
+      key: "request_number",
+      header: "Requisition #",
+      sortable: true,
+      render: (r) => (
+        <span className="font-mono text-caption text-text-muted">
+          {r.request_number || `SR-${r.id.slice(0, 6)}`}
+        </span>
+      ),
+    },
+    {
+      key: "item_name",
+      header: "Item & Materials",
+      sortable: true,
+      render: (r) => (
+        <div>
+          <span className="font-semibold text-text-primary block text-body-sm">{r.item_name}</span>
+          {r.location_note && (
+            <span className="text-caption text-text-muted">Facility: {r.location_note}</span>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "quantity",
+      header: "Quantity",
+      sortable: true,
+      render: (r) => (
+        <span className="font-medium text-text-primary text-body-sm">
+          {r.quantity} {r.unit || "units"}
+        </span>
+      ),
+    },
+    {
+      key: "priority",
+      header: "Priority",
+      sortable: true,
+      render: (r) => {
+        const p = r.priority?.toLowerCase();
+        let badgeStatus: "Draft" | "Active" | "Pending" | "Suspended" | "Cancelled" = "Draft";
+        if (p === "urgent") badgeStatus = "Cancelled";
+        else if (p === "high") badgeStatus = "Suspended";
+        else if (p === "normal") badgeStatus = "Active";
 
-  const filtered = requests.filter(r =>
-    r.item_name.toLowerCase().includes(search.toLowerCase()) ||
-    (r.location_note ?? '').toLowerCase().includes(search.toLowerCase())
-  );
+        return <StatusBadge status={badgeStatus} label={r.priority?.toUpperCase()} />;
+      },
+    },
+    {
+      key: "status",
+      header: "Procurement Status",
+      sortable: true,
+      render: (r) => {
+        let badgeStatus: "Draft" | "Active" | "Pending" | "Suspended" | "Cancelled" = "Draft";
+        if (r.status === "delivered") badgeStatus = "Active";
+        else if (r.status === "ordered") badgeStatus = "Pending";
+        else if (r.status === "approved") badgeStatus = "Suspended";
 
-  const stats = {
-    total: requests.length,
-    urgent: requests.filter(r => r.priority === 'urgent' && r.status === 'pending').length,
-    pending: requests.filter(r => r.status === 'pending').length,
-    approved: requests.filter(r => r.status === 'approved').length,
-  };
+        return (
+          <StatusBadge
+            status={badgeStatus}
+            label={r.status?.toUpperCase()}
+          />
+        );
+      },
+    },
+    {
+      key: "created_at",
+      header: "Requested Date",
+      sortable: true,
+      render: (r) => (
+        <span className="text-caption text-text-muted">
+          {new Date(r.created_at).toLocaleDateString()}
+        </span>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      render: (r) => {
+        const next = STATUS_FLOW[r.status];
+        if (!next) return null;
+        return (
+          <button
+            onClick={() => advanceStatus(r)}
+            className="btn btn-secondary btn-sm text-[11px] px-2 py-0.5 flex items-center gap-1"
+          >
+            Mark {next} <ArrowRight className="w-3 h-3" />
+          </button>
+        );
+      },
+    },
+  ];
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6 pb-16">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Supply Management</h1>
-          <p className="text-sm text-slate-500 mt-0.5">Manage field supply requests from employees</p>
-        </div>
-        <button onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold text-sm hover:bg-blue-700 shadow-sm">
-          <Plus className="w-4 h-4" /> New Request
-        </button>
+    <div className="space-y-6">
+      <PageHeader
+        title="Supply Chain & Inventory Management"
+        description="Chemical requisitions, PPE supply replenishment, cleaning equipment orders, and delivery logistics"
+        breadcrumbs={[
+          { label: "Operations", href: "/dashboard/operations" },
+          { label: "Supply Management" },
+        ]}
+        actions={
+          <button
+            onClick={() => setShowCreate(true)}
+            className="btn btn-primary btn-sm flex items-center gap-1.5"
+          >
+            <Plus className="w-4 h-4" /> Request Supplies
+          </button>
+        }
+      />
+
+      {/* Metrics Row */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <MetricCard
+          title="Total Requisitions"
+          value={metrics.total}
+          subtitle="All supply requests"
+          icon={<Package className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Awaiting Approval"
+          value={metrics.pending}
+          subtitle="Action required by manager"
+          icon={<Clock className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="In Procurement Pipeline"
+          value={metrics.activePipeline}
+          subtitle="Approved or in-transit"
+          icon={<Truck className="w-5 h-5" />}
+        />
+        <MetricCard
+          title="Urgent Low-Stock"
+          value={metrics.urgentCount}
+          subtitle="Critical inventory need"
+          icon={<AlertTriangle className="w-5 h-5" />}
+        />
       </div>
 
-      {error && (
-        <div className="flex items-center gap-3 bg-red-50 border border-red-200 rounded-lg px-4 py-3 text-red-700 text-sm">
-          <AlertCircle className="w-4 h-4 flex-shrink-0" /><span>{error}</span>
-          <button onClick={() => setError(null)} className="ml-auto"><X className="w-4 h-4" /></button>
-        </div>
-      )}
+      {/* Supply Requests Table */}
+      <DataTable
+        data={requests}
+        columns={columns}
+        loading={loading}
+        searchable={true}
+        searchPlaceholder="Search materials by item name, requisition #, facility..."
+        searchKeys={["item_name", "request_number", "location_note", "status"]}
+        emptyTitle="No Supply Requests"
+        emptyDescription="All cleaning inventory, disinfectants, and sanitizing agents are well stocked."
+        emptyAction={
+          <button onClick={() => setShowCreate(true)} className="btn btn-primary btn-sm">
+            <Plus className="w-4 h-4 mr-1.5" /> Request Supplies
+          </button>
+        }
+      />
 
-      <div className="grid grid-cols-4 gap-4">
-        {[
-          { label: 'Total Requests', value: stats.total, color: 'text-slate-900' },
-          { label: 'Urgent Pending', value: stats.urgent, color: stats.urgent > 0 ? 'text-red-600' : 'text-slate-400' },
-          { label: 'Pending Approval', value: stats.pending, color: stats.pending > 0 ? 'text-amber-600' : 'text-slate-400' },
-          { label: 'Approved / Ordered', value: stats.approved, color: 'text-blue-600' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-xl border border-slate-200 p-4 text-center">
-            <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-xs text-slate-500 font-medium mt-0.5">{s.label}</p>
-          </div>
-        ))}
-      </div>
+      {/* Requisition Modal */}
+      <Modal
+        open={showCreate}
+        onClose={() => setShowCreate(false)}
+        title="Request Operational Cleaning Supplies"
+        description="Submit requisition for chemicals, microfiber towels, PPE, or machinery parts."
+        size="md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowCreate(false)}
+              className="btn btn-secondary btn-sm"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              form="supply-form"
+              disabled={creating}
+              className="btn btn-primary btn-sm"
+            >
+              {creating ? "Submitting..." : "Submit Requisition"}
+            </button>
+          </>
+        }
+      >
+        <form id="supply-form" onSubmit={handleCreate} className="space-y-4">
+          <FormField label="Item Description" required>
+            <input
+              type="text"
+              required
+              className="form-input"
+              placeholder="e.g. Quaternary Disinfectant Cleaner (Gallon)"
+              value={form.item_name}
+              onChange={(e) => setForm({ ...form, item_name: e.target.value })}
+            />
+          </FormField>
 
-      <div className="flex flex-wrap gap-3">
-        <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 flex-1 min-w-[200px]">
-          <Search className="w-4 h-4 text-slate-400" />
-          <input type="text" placeholder="Search requests..." value={search} onChange={e => setSearch(e.target.value)}
-            className="flex-1 outline-none text-sm text-slate-800 bg-transparent" />
-        </div>
-        <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none">
-          <option value="all">All Statuses</option>
-          {['pending', 'approved', 'ordered', 'delivered', 'cancelled'].map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
-        </select>
-        <select value={filterPriority} onChange={e => setFilterPriority(e.target.value)}
-          className="border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-700 bg-white focus:outline-none">
-          <option value="all">All Priorities</option>
-          {['urgent', 'high', 'normal', 'low'].map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
-        </select>
-      </div>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Quantity" required>
+              <input
+                type="number"
+                min="1"
+                required
+                className="form-input"
+                value={form.quantity}
+                onChange={(e) => setForm({ ...form, quantity: e.target.value })}
+              />
+            </FormField>
 
-      <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-slate-100">
-          <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider">Requests ({filtered.length})</h2>
-        </div>
-        {loading ? (
-          <div className="py-16 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-blue-500" /></div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center">
-            <Package className="w-10 h-10 text-slate-300 mx-auto mb-3" />
-            <p className="text-slate-500 font-medium">No supply requests found</p>
-            {requests.length === 0 && <p className="text-sm text-slate-400 mt-1">Employees can request supplies from the mobile app</p>}
+            <FormField label="Packaging Unit">
+              <select
+                className="form-input"
+                value={form.unit}
+                onChange={(e) => setForm({ ...form, unit: e.target.value })}
+              >
+                <option value="cases">Cases</option>
+                <option value="bottles">Bottles</option>
+                <option value="gallons">Gallons</option>
+                <option value="boxes">Boxes</option>
+                <option value="rolls">Rolls</option>
+                <option value="units">Individual Units</option>
+              </select>
+            </FormField>
           </div>
-        ) : (
-          <div className="divide-y divide-slate-100">
-            {filtered.map(req => (
-              <div key={req.id} className="px-5 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors gap-4">
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="p-2 bg-slate-50 rounded-lg flex-shrink-0">
-                    <Package className="w-4 h-4 text-slate-500" />
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <p className="font-semibold text-slate-900">{req.item_name}</p>
-                      <span className="text-xs text-slate-500">× {req.quantity}{req.unit ? ` ${req.unit}` : ''}</span>
-                      {req.request_number && <span className="text-[11px] text-slate-400 font-mono">{req.request_number}</span>}
-                    </div>
-                    <div className="flex items-center gap-2 mt-1 flex-wrap">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${PRIORITY_STYLES[req.priority]}`}>{req.priority}</span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${STATUS_STYLES[req.status]}`}>{req.status}</span>
-                      {req.location_note && <span className="text-xs text-slate-500">{req.location_note}</span>}
-                      <span className="text-xs text-slate-400">{new Date(req.created_at).toLocaleDateString()}</span>
-                    </div>
-                    {req.notes && <p className="text-xs text-slate-500 mt-1 italic">{req.notes}</p>}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2 flex-shrink-0">
-                  {STATUS_FLOW[req.status] && (
-                    <button onClick={() => advanceStatus(req)}
-                      className="px-3 py-1.5 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors capitalize">
-                      → {STATUS_FLOW[req.status]}
-                    </button>
-                  )}
-                  {req.status === 'pending' && (
-                    <button onClick={() => cancelRequest(req.id)}
-                      className="px-3 py-1.5 text-xs font-semibold text-slate-500 bg-slate-50 hover:bg-slate-100 rounded-lg transition-colors">
-                      Cancel
-                    </button>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
 
-      {showCreate && (
-        <div className="fixed inset-0 bg-slate-900/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl w-full max-w-md shadow-2xl">
-            <div className="border-b border-slate-100 px-6 py-4 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-slate-900">New Supply Request</h3>
-              <button onClick={() => setShowCreate(false)}><X className="w-5 h-5 text-slate-400 hover:text-slate-700" /></button>
-            </div>
-            <form onSubmit={handleCreate} className="p-6 space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Item Name <span className="text-red-500">*</span></label>
-                <input required type="text" value={form.item_name} onChange={e => setForm(p => ({ ...p, item_name: e.target.value }))}
-                  placeholder="e.g. Disinfectant Spray, Mop Heads, Paper Towels"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Quantity</label>
-                  <input type="number" min="1" value={form.quantity} onChange={e => setForm(p => ({ ...p, quantity: e.target.value }))}
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1">Unit</label>
-                  <input type="text" value={form.unit} onChange={e => setForm(p => ({ ...p, unit: e.target.value }))}
-                    placeholder="e.g. bottles, boxes"
-                    className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-                </div>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Priority</label>
-                <select value={form.priority} onChange={e => setForm(p => ({ ...p, priority: e.target.value }))}
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500">
-                  {['urgent', 'high', 'normal', 'low'].map(p => <option key={p} value={p} className="capitalize">{p}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Location / Site</label>
-                <input type="text" value={form.location_note} onChange={e => setForm(p => ({ ...p, location_note: e.target.value }))}
-                  placeholder="Where is it needed?"
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500" />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Notes</label>
-                <textarea rows={2} value={form.notes} onChange={e => setForm(p => ({ ...p, notes: e.target.value }))}
-                  placeholder="Additional details..."
-                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none" />
-              </div>
-              <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowCreate(false)}
-                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
-                <button type="submit" disabled={creating}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 disabled:opacity-50">
-                  {creating ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                  Submit Request
-                </button>
-              </div>
-            </form>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Requisition Priority">
+              <select
+                className="form-input capitalize"
+                value={form.priority}
+                onChange={(e) => setForm({ ...form, priority: e.target.value })}
+              >
+                <option value="low">Low (Restock)</option>
+                <option value="normal">Normal (Standard)</option>
+                <option value="high">High (Depleting)</option>
+                <option value="urgent">Urgent (Depleted)</option>
+              </select>
+            </FormField>
+
+            <FormField label="Target Facility / Client Site">
+              <input
+                type="text"
+                className="form-input"
+                placeholder="e.g. Dallas Regional Hub"
+                value={form.location_note}
+                onChange={(e) => setForm({ ...form, location_note: e.target.value })}
+              />
+            </FormField>
           </div>
-        </div>
-      )}
+
+          <FormField label="Special Delivery Instructions or SDS Note">
+            <textarea
+              className="form-input h-20 resize-none"
+              placeholder="Specify EPA registration requirements or loading dock details..."
+              value={form.notes}
+              onChange={(e) => setForm({ ...form, notes: e.target.value })}
+            />
+          </FormField>
+        </form>
+      </Modal>
     </div>
   );
 }

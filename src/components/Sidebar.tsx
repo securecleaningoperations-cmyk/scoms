@@ -1,314 +1,356 @@
 "use client";
 
-import { supabase } from "@/lib/supabase";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useState, useEffect } from "react";
-import { 
-  LayoutDashboard, Users, Briefcase, FileText, DollarSign, ShieldCheck,
-  Calendar, MessageSquare, Lock, TrendingUp, UserCircle, BarChart,
-  Building2, Settings, ChevronDown, ChevronRight, Shield, FolderOpen,
-  ClipboardList, BarChart2, UserCheck, Network, Settings2, Bot, Activity, GraduationCap
+import { usePathname } from "next/navigation";
+import { useState, useMemo } from "react";
+import { usePermissions } from "@/lib/auth/AuthProvider";
+import clsx from "clsx";
+import {
+  LayoutDashboard, Briefcase, ClipboardList, Calendar, MapPin,
+  UserCheck, Clock, CheckSquare, AlertTriangle, ShieldAlert,
+  Users, UserPlus, CalendarOff, Award, GraduationCap,
+  Building2, Target, FileText, Handshake, Star,
+  DollarSign, Receipt, CreditCard, Wallet, PieChart,
+  Package, Truck, Beaker, HardHat, Wrench,
+  ShieldCheck, FileSearch, Scale, AlertCircle,
+  BookOpen, ClipboardCheck,
+  FolderOpen, FilePlus, FileSignature,
+  MessageSquare, Phone, Video, Bell,
+  Bot, Sparkles, PhoneCall, Brain,
+  Globe, Network, MapPinned,
+  BarChart3, TrendingUp, Activity,
+  Settings, Lock, Users2, Workflow, Plug,
+  ChevronDown, ChevronRight, Shield,
+  PanelLeftClose, PanelLeft
 } from "lucide-react";
 
-import clsx from "clsx";
+// ── Navigation Structure (per spec section 8) ──────────────────────────
 
-const ROLE_ACCESS: Record<string, string[]> = {
-  'super_admin': ['ALL'],
-  'corporate_admin': ['ALL'],
-  'executive': ['Dashboard', 'Documents', 'Finance', 'Improvement', 'Clients', 'Quality', 'Executive'],
-  'franchise_admin': ['Dashboard', 'Documents', 'Workforce', 'Scheduling', 'Clients', 'Jobs', 'Quality', 'Finance', 'Franchise', 'Settings'],
-  'operations_manager': ['Dashboard', 'Documents', 'Workforce', 'Scheduling', 'Jobs', 'Quality', 'Communications', 'Improvement'],
-  'supervisor': ['Dashboard', 'Documents', 'Workforce', 'Scheduling', 'Jobs', 'Quality', 'Communications', 'Improvement'],
-  'hr_manager': ['Dashboard', 'Documents', 'Workforce', 'Communications', 'Intelligence'],
-  'payroll_admin': ['Dashboard', 'Documents', 'Workforce', 'Finance'],
-  'finance_admin': ['Dashboard', 'Documents', 'Finance', 'Clients'],
-  'sales_manager': ['Dashboard', 'Documents', 'Clients', 'Communications', 'Intelligence'],
-  'scheduler': ['Dashboard', 'Scheduling', 'Jobs'],
-  'compliance_officer': ['Dashboard', 'Documents', 'Quality', 'Improvement', 'Security', 'Executive'],
-  'field_employee': ['Jobs', 'Scheduling'],
-  'client_admin': ['Customer', 'Documents'],
-  'client_user': ['Customer'],
-  'vendor_manager': ['Executive', 'Documents']
-};
+interface NavChild {
+  label: string;
+  href: string;
+  icon?: React.ElementType;
+}
 
-const navStructure = [
-  { name: "Dashboard", icon: LayoutDashboard, href: "/dashboard", children: [] },
-  { name: "Command Center", icon: Activity, href: "/dashboard/operations", children: [] },
+interface NavGroup {
+  id: string;
+  label: string;
+  icon: React.ElementType;
+  href?: string;
+  children: NavChild[];
+}
+
+const NAV_GROUPS: NavGroup[] = [
   {
-    name: "Documents", icon: FolderOpen, href: "/dashboard/documents",
+    id: "Overview",
+    label: "Overview",
+    icon: LayoutDashboard,
     children: [
-      { name: "Repository", href: "/dashboard/documents" },
-      { name: "SOPs", href: "/dashboard/sops" },
-      { name: "Templates", href: "/dashboard/documents" }
-    ]
+      { label: "Executive Dashboard", href: "/dashboard" },
+      { label: "Operations Dashboard", href: "/dashboard/operations" },
+    ],
   },
   {
-    name: "Workforce", icon: Users, href: "/dashboard/hr",
+    id: "Operations",
+    label: "Operations",
+    icon: ClipboardList,
     children: [
-      { name: "Employees", href: "/dashboard/hr" },
-      { name: "Recruiting", href: "/dashboard/hr/recruiting" },
-      { name: "Payroll", href: "/dashboard/hr/payroll" },
-      { name: "Training", href: "/dashboard/hr/training" },
-      { name: "Certifications", href: "/dashboard/hr/certifications" },
-      { name: "Performance", href: "/dashboard/hr/performance" }
-    ]
+      { label: "Jobs", href: "/dashboard/jobs" },
+      { label: "Schedule", href: "/dashboard/scheduling" },
+      { label: "Dispatch", href: "/dashboard/scheduling/dispatch" },
+      { label: "Route Planning", href: "/dashboard/scheduling/routes" },
+      { label: "Inspections", href: "/dashboard/quality" },
+      { label: "Issues", href: "/dashboard/incidents" },
+    ],
   },
   {
-    name: "Scheduling", icon: Calendar, href: "/dashboard/scheduling",
+    id: "Workforce",
+    label: "Workforce",
+    icon: Users,
     children: [
-      { name: "Calendar", href: "/dashboard/scheduling" },
-      { name: "Dispatch", href: "/dashboard/scheduling/dispatch" },
-      { name: "Routes", href: "/dashboard/scheduling/routes" }
-    ]
+      { label: "Employees", href: "/dashboard/hr" },
+      { label: "Recruiting", href: "/dashboard/hr/recruiting" },
+      { label: "Certifications", href: "/dashboard/hr/certifications" },
+      { label: "Performance", href: "/dashboard/hr/performance" },
+      { label: "Payroll", href: "/dashboard/hr/payroll" },
+      { label: "Training", href: "/dashboard/hr/training" },
+    ],
   },
   {
-    name: "Clients", icon: Building2, href: "/dashboard/clients",
+    id: "Clients & Sales",
+    label: "Clients & Sales",
+    icon: Building2,
     children: [
-      { name: "Client Directory", href: "/dashboard/clients" },
-      { name: "Leads Pipeline", href: "/dashboard/leads" },
-      { name: "Site Walkthroughs", href: "/dashboard/walkthroughs" },
-      { name: "Contracts", href: "/dashboard/clients/contracts" },
-      { name: "Proposals", href: "/dashboard/clients/proposals" }
-    ]
+      { label: "Clients", href: "/dashboard/clients" },
+      { label: "Leads", href: "/dashboard/leads" },
+      { label: "Walkthroughs", href: "/dashboard/walkthroughs" },
+      { label: "Proposals", href: "/dashboard/clients/proposals" },
+      { label: "Contracts", href: "/dashboard/clients/contracts" },
+    ],
   },
   {
-    name: "Jobs", icon: ClipboardList, href: "/dashboard/jobs",
+    id: "Finance",
+    label: "Finance",
+    icon: DollarSign,
     children: [
-      { name: "All Jobs", href: "/dashboard/jobs" },
-      { name: "Checklists", href: "/dashboard/jobs/checklists" }
-    ]
+      { label: "Accountant", href: "/dashboard/gl/accountant" },
+      { label: "General Ledger", href: "/dashboard/gl" },
+      { label: "Invoices", href: "/dashboard/gl/invoices" },
+      { label: "Quotes", href: "/dashboard/gl/quotes" },
+      { label: "Job Costing", href: "/dashboard/gl/job-costing" },
+      { label: "Bid Calculator", href: "/dashboard/bid-calculator" },
+      { label: "Assets", href: "/dashboard/gl/assets" },
+      { label: "Tax", href: "/dashboard/gl/tax" },
+    ],
   },
   {
-    name: "Quality", icon: ShieldCheck, href: "/dashboard/quality",
+    id: "Procurement & Inventory",
+    label: "Procurement",
+    icon: Package,
     children: [
-      { name: "QA Inspections", href: "/dashboard/quality" },
-      { name: "CAPA", href: "/dashboard/quality/capa" },
-      { name: "Incidents", href: "/dashboard/incidents" },
-      { name: "Compliance", href: "/dashboard/quality/compliance" }
-    ]
+      { label: "Procurement Hub", href: "/dashboard/procurement" },
+      { label: "Supply Management", href: "/dashboard/supply-management" },
+      { label: "Subcontractors", href: "/dashboard/subcontractors" },
+    ],
   },
   {
-    name: "Academy", icon: GraduationCap, href: "/dashboard/academy",
+    id: "Quality & Compliance",
+    label: "Quality & Compliance",
+    icon: ShieldCheck,
     children: [
-      { name: "Training Courses", href: "/dashboard/academy" },
-      { name: "Assignments", href: "/dashboard/academy" },
-      { name: "Certificates", href: "/dashboard/academy" }
-    ]
+      { label: "QA Inspections", href: "/dashboard/quality" },
+      { label: "CAPA", href: "/dashboard/quality/capa" },
+      { label: "Compliance", href: "/dashboard/quality/compliance" },
+      { label: "Incidents", href: "/dashboard/incidents" },
+      { label: "Improvement", href: "/dashboard/improvement" },
+      { label: "Audits", href: "/dashboard/improvement/audits" },
+    ],
   },
   {
-    name: "Finance", icon: DollarSign, href: "/dashboard/gl/accountant",
+    id: "Academy",
+    label: "Academy",
+    icon: GraduationCap,
     children: [
-      { name: "Accountant Workspace", href: "/dashboard/gl/accountant" },
-      { name: "General Ledger", href: "/dashboard/gl" },
-      { name: "Invoices", href: "/dashboard/gl/invoices" },
-      { name: "Quotes", href: "/dashboard/gl/quotes" },
-      { name: "Job Costing", href: "/dashboard/gl/job-costing" },
-      { name: "Bid Calculator", href: "/dashboard/bid-calculator" },
-      { name: "Payroll", href: "/dashboard/hr/payroll" },
-      { name: "Assets", href: "/dashboard/gl/assets" },
-      { name: "Subcontractors", href: "/dashboard/subcontractors" },
-      { name: "Tax Intel", href: "/dashboard/gl/tax" },
-      { name: "Profit AI", href: "/dashboard/profit" }
-    ]
+      { label: "Training Dashboard", href: "/dashboard/academy" },
+      { label: "Courses", href: "/dashboard/hr/training" },
+    ],
   },
   {
-    name: "Communications", icon: MessageSquare, href: "/dashboard/communications",
+    id: "Documents",
+    label: "Documents",
+    icon: FolderOpen,
     children: [
-      { name: "Timeline", href: "/dashboard/communications" },
-      { name: "Meetings", href: "/dashboard/communications/meetings" }
-    ]
+      { label: "Document Center", href: "/dashboard/documents" },
+      { label: "SOPs", href: "/dashboard/sops" },
+    ],
   },
   {
-    name: "Intelligence", icon: Bot, href: "/dashboard/phone-agent",
+    id: "Communications",
+    label: "Communications",
+    icon: MessageSquare,
     children: [
-      { name: "AI Dashboard", href: "/dashboard/intelligence" },
-      { name: "Phone Agent", href: "/dashboard/phone-agent" },
-      { name: "Knowledge Base", href: "/dashboard/knowledge-base" }
-    ]
+      { label: "Timeline", href: "/dashboard/communications" },
+      { label: "Meetings", href: "/dashboard/communications/meetings" },
+    ],
   },
   {
-    name: "Security", icon: Lock, href: "/dashboard/security",
+    id: "AI",
+    label: "AI & Intelligence",
+    icon: Bot,
     children: [
-      { name: "Users & Roles", href: "/dashboard/security" },
-      { name: "Audit Logs", href: "/dashboard/security/audit" },
-      { name: "Incidents", href: "/dashboard/incidents" }
-    ]
+      { label: "AI Dashboard", href: "/dashboard/intelligence" },
+      { label: "Phone Agent", href: "/dashboard/phone-agent" },
+      { label: "Knowledge Base", href: "/dashboard/knowledge-base" },
+    ],
   },
   {
-    name: "Improvement", icon: BarChart2, href: "/dashboard/improvement",
+    id: "Organization",
+    label: "Organization",
+    icon: Network,
     children: [
-      { name: "KPI Dashboard", href: "/dashboard/improvement" },
-      { name: "Audits", href: "/dashboard/improvement/audits" },
-      { name: "Non-Conformance", href: "/dashboard/improvement/nonconformance" }
-    ]
+      { label: "Franchise", href: "/dashboard/franchise" },
+      { label: "Compliance", href: "/dashboard/franchise/compliance" },
+    ],
   },
   {
-    name: "Customer", icon: UserCheck, href: "/dashboard/customer",
+    id: "Analytics",
+    label: "Analytics",
+    icon: BarChart3,
     children: [
-      { name: "Support Hub", href: "/dashboard/customer" }
-    ]
+      { label: "KPI Dashboard", href: "/dashboard/improvement" },
+      { label: "Profit Analysis", href: "/dashboard/profit" },
+    ],
   },
   {
-    name: "Executive", icon: Briefcase, href: "/dashboard",
+    id: "Administration",
+    label: "Administration",
+    icon: Settings,
     children: [
-      { name: "CFO Dashboard", href: "/dashboard" },
-      { name: "Procurement Hub", href: "/dashboard/procurement" },
-      { name: "Governance", href: "/dashboard/executive/governance" },
-      { name: "Management Review", href: "/dashboard/executive/mrb" }
-    ]
+      { label: "Users & Roles", href: "/dashboard/security" },
+      { label: "Audit Logs", href: "/dashboard/security/audit" },
+      { label: "Settings", href: "/dashboard/settings" },
+    ],
   },
-  {
-    name: "Franchise", icon: Network, href: "/dashboard/franchise",
-    children: [
-      { name: "Locations", href: "/dashboard/franchise" },
-      { name: "Compliance", href: "/dashboard/franchise/compliance" },
-      { name: "Training", href: "/dashboard/franchise/training" }
-    ]
-  },
-  {
-    name: "Settings", icon: Settings2, href: "/dashboard/settings",
-    children: [{ name: "System Config", href: "/dashboard/settings" }]
-  }
 ];
 
+// ── Sidebar Component ──────────────────────────────────────────────────
 
-export function Sidebar() {
+export function Sidebar({
+  isMobile = false,
+  onNavigate,
+}: {
+  isMobile?: boolean;
+  onNavigate?: () => void;
+} = {}) {
   const pathname = usePathname();
-  const router = useRouter();
-  const [userRole, setUserRole] = useState<string>('super_admin');
-  const [expandedMenus, setExpandedMenus] = useState<string[]>([
-    'Dashboard', 'Clients', 'Finance', 'Intelligence', 'Executive', 'Workforce', 'Documents'
-  ]);
-
-  useEffect(() => {
-    async function getRole() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        // Try user metadata first
-        let role = user.user_metadata?.role;
-        if (!role) {
-          const { data } = await supabase.from('users').select('role').eq('id', user.id).single();
-          role = data?.role;
-        }
-        if (role) {
-          const normalizedRole = role.toLowerCase().replace(/\s+/g, '_');
-          setUserRole(normalizedRole);
-        }
+  const { canAccessGroup } = usePermissions();
+  const [collapsed, setCollapsed] = useState(false);
+  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(() => {
+    // Auto-expand the group that contains the current path
+    const initial = new Set<string>();
+    for (const group of NAV_GROUPS) {
+      if (group.children.some((c) => pathname === c.href || pathname.startsWith(c.href + "/"))) {
+        initial.add(group.id);
       }
     }
-    getRole();
-  }, []);
+    if (initial.size === 0) initial.add("Overview");
+    return initial;
+  });
 
-  const allowedGroups = ROLE_ACCESS[userRole] || ['Dashboard'];
-  const filteredNav = navStructure.filter(group => 
-    allowedGroups.includes('ALL') || allowedGroups.includes(group.name)
+  const filteredGroups = useMemo(
+    () => NAV_GROUPS.filter((g) => canAccessGroup(g.id)),
+    [canAccessGroup]
   );
 
-  const toggleMenu = (name: string) => {
-    setExpandedMenus(prev =>
-      prev.includes(name) ? prev.filter(m => m !== name) : [...prev, name]
-    );
+  const toggleGroup = (id: string) => {
+    setExpandedGroups((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
 
+  const isChildActive = (href: string) =>
+    pathname === href || pathname.startsWith(href + "/");
+
   return (
-    <div className="w-[260px] bg-white border-r border-slate-200 h-screen flex flex-col flex-shrink-0 z-10 hidden md:flex font-sans">
-      <div className="p-5 flex items-center gap-3 border-b border-slate-100">
-        <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-sm">
-          <Shield className="w-5 h-5" />
+    <aside
+      className={clsx(
+        isMobile
+          ? "flex flex-col h-full w-full bg-surface"
+          : "hidden md:flex flex-col h-screen border-r border-border bg-surface flex-shrink-0 transition-all duration-200 z-20",
+        !isMobile && (collapsed ? "w-[56px]" : "w-[240px]")
+      )}
+    >
+      {/* Brand */}
+      <div className={clsx(
+        "flex items-center h-14 border-b border-border flex-shrink-0",
+        collapsed ? "justify-center px-2" : "px-4 gap-2.5"
+      )}>
+        <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white flex-shrink-0">
+          <Shield className="w-4 h-4" />
         </div>
-        <div>
-          <h1 className="text-[15px] font-bold text-slate-900 leading-tight">SCOMS</h1>
-          <p className="text-[11px] text-slate-500 font-medium">Secure Cleaning Ops</p>
-        </div>
+        {!collapsed && (
+          <div className="min-w-0">
+            <p className="text-body-sm font-semibold text-text-primary leading-tight truncate">SCOMS</p>
+            <p className="text-caption text-text-muted leading-tight">Enterprise Platform</p>
+          </div>
+        )}
       </div>
 
-      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-1">
-        {filteredNav.map((group) => {
-          const isExpanded = expandedMenus.includes(group.name);
-          const hasChildren = group.children && group.children.length > 0;
-          const isActive = pathname === group.href || (hasChildren && group.children.some(c => pathname === c.href));
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2">
+        {filteredGroups.map((group) => {
+          const isExpanded = expandedGroups.has(group.id);
+          const hasActiveChild = group.children.some((c) => isChildActive(c.href));
+          const GroupIcon = group.icon;
 
           return (
-            <div key={group.name} className="mb-0.5">
-              {hasChildren ? (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    toggleMenu(group.name);
-                    router.push(group.href);
-                  }}
-                  className={clsx(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-lg transition-colors duration-150 text-[14px] font-medium group cursor-pointer",
-                    isActive ? "text-blue-600 bg-blue-50/70 font-semibold" : "text-slate-700 hover:bg-slate-100"
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <group.icon className={clsx(
-                      "w-[18px] h-[18px]",
-                      isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
-                    )} />
-                    <span>{group.name}</span>
-                  </div>
-                  {isExpanded ? (
-                    <ChevronDown className="w-4 h-4 text-slate-400" />
-                  ) : (
-                    <ChevronRight className="w-4 h-4 text-slate-400" />
-                  )}
-                </button>
-              ) : (
+            <div key={group.id} className="mb-0.5">
+              {collapsed ? (
+                /* Collapsed: just icon, link to first child */
                 <Link
-                  href={group.href}
+                  href={group.children[0]?.href || "/dashboard"}
                   className={clsx(
-                    "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-colors duration-150 text-[14px] font-medium group",
-                    pathname === group.href
-                      ? "bg-blue-600 text-white font-semibold shadow-sm"
-                      : "text-slate-700 hover:bg-slate-100"
+                    "flex items-center justify-center w-full h-9 rounded-md transition-colors",
+                    hasActiveChild
+                      ? "bg-primary-50 text-primary-600"
+                      : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
                   )}
+                  title={group.label}
                 >
-                  <group.icon className={clsx(
-                    "w-[18px] h-[18px]",
-                    pathname === group.href ? "text-white" : "text-slate-400 group-hover:text-slate-600"
-                  )} />
-                  <span>{group.name}</span>
+                  <GroupIcon className="w-4 h-4" />
                 </Link>
-              )}
+              ) : (
+                <>
+                  {/* Group header */}
+                  <button
+                    onClick={() => toggleGroup(group.id)}
+                    className={clsx(
+                      "w-full flex items-center justify-between px-2.5 py-1.5 rounded-md transition-colors text-body-sm",
+                      hasActiveChild
+                        ? "text-primary-600 font-medium"
+                        : "text-text-secondary hover:text-text-primary hover:bg-surface-hover"
+                    )}
+                  >
+                    <span className="flex items-center gap-2.5 min-w-0">
+                      <GroupIcon className="w-4 h-4 flex-shrink-0" />
+                      <span className="truncate">{group.label}</span>
+                    </span>
+                    {isExpanded ? (
+                      <ChevronDown className="w-3 h-3 text-text-muted flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="w-3 h-3 text-text-muted flex-shrink-0" />
+                    )}
+                  </button>
 
-              {isExpanded && hasChildren && (
-                <div className="mt-0.5 mb-1.5 flex flex-col space-y-0.5">
-                  {group.children.map((child) => {
-                    const isChildActive = pathname === child.href;
-                    return (
-                      <Link
-                        key={child.name}
-                        href={child.href}
-                        className={clsx(
-                          "w-full flex items-center pl-10 pr-3 py-1.5 rounded-lg transition-colors duration-150 text-[13px] font-medium",
-                          isChildActive
-                            ? "bg-blue-50 text-blue-600 font-semibold"
-                            : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
-                        )}
-                      >
-                        {child.name}
-                      </Link>
-                    );
-                  })}
-                </div>
+                  {/* Children */}
+                  {isExpanded && (
+                    <div className="mt-0.5 mb-1">
+                      {group.children.map((child) => {
+                        const active = isChildActive(child.href);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onNavigate}
+                            className={clsx(
+                              "flex items-center pl-9 pr-2.5 py-1.5 rounded-md transition-colors text-body-sm",
+                              active
+                                ? "bg-primary-50 text-primary-700 font-medium"
+                                : "text-text-muted hover:text-text-primary hover:bg-surface-hover"
+                            )}
+                          >
+                            <span className="truncate">{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           );
         })}
-      </div>
+      </nav>
 
-      <div className="p-4 border-t border-slate-200 mt-auto bg-slate-50">
-        <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg">
-          <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
-          <span className="text-[12px] font-semibold text-slate-700 capitalize">Role: {userRole.replace('_', ' ')}</span>
+      {/* Footer */}
+      {!isMobile && (
+        <div className="border-t border-border p-2 flex-shrink-0">
+          <button
+            onClick={() => setCollapsed(!collapsed)}
+            className="flex items-center justify-center w-full py-1.5 rounded-md text-text-muted hover:text-text-primary hover:bg-surface-hover transition-colors"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {collapsed ? (
+              <PanelLeft className="w-4 h-4" />
+            ) : (
+              <PanelLeftClose className="w-4 h-4" />
+            )}
+          </button>
         </div>
-        <p className="text-[10px] text-slate-400 px-2 mt-0.5">v6.1 Enterprise • Production</p>
-      </div>
-    </div>
+      )}
+    </aside>
   );
 }
