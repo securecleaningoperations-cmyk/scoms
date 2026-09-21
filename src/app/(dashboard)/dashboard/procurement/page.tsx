@@ -87,8 +87,16 @@ export default function ProcurementHub() {
     };
   }, [opportunities]);
 
-  const handleAddOpportunity = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleAddOpportunity = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!form.title.trim()) {
+      alert("Please enter an opportunity title.");
+      return;
+    }
+    if (!form.agency.trim()) {
+      alert("Please enter the issuing agency or client.");
+      return;
+    }
     setIsAdding(true);
     try {
       const newOp = {
@@ -287,8 +295,8 @@ export default function ProcurementHub() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="procurement-form"
+              type="button"
+              onClick={() => handleAddOpportunity()}
               disabled={isAdding}
               className="btn btn-primary btn-sm"
             >

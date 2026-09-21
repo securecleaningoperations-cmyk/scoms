@@ -70,8 +70,12 @@ export default function CustomerPage() {
     };
   }, [loadData]);
 
-  const handleInquirySubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleInquirySubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!inquiryForm.customer_name.trim()) {
+      alert("Please enter a customer name.");
+      return;
+    }
     setSubmitting(true);
     try {
       await addInquiry(inquiryForm);
@@ -92,8 +96,8 @@ export default function CustomerPage() {
     }
   };
 
-  const handleReviewSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleReviewSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     setSubmitting(true);
     try {
       await addReview(reviewForm);
@@ -309,8 +313,8 @@ export default function CustomerPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="inquiry-form"
+              type="button"
+              onClick={() => handleInquirySubmit()}
               disabled={submitting}
               className="btn btn-primary btn-sm"
             >
@@ -382,8 +386,8 @@ export default function CustomerPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="review-form"
+              type="button"
+              onClick={() => handleReviewSubmit()}
               disabled={submitting}
               className="btn btn-primary btn-sm"
             >

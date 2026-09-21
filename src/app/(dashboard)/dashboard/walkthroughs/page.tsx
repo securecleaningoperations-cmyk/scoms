@@ -91,9 +91,12 @@ export default function WalkthroughModule() {
     };
   }, [assessments]);
 
-  const handleCreateWalkthrough = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!selectedLeadId) return;
+  const handleCreateWalkthrough = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!selectedLeadId) {
+      alert("Please select a target lead account.");
+      return;
+    }
     setFormSaving(true);
     try {
       const { error } = await supabase.from("walkthrough_assessments").insert([
@@ -499,8 +502,8 @@ export default function WalkthroughModule() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="walkthrough-form"
+              type="button"
+              onClick={() => handleCreateWalkthrough()}
               disabled={formSaving}
               className="btn btn-primary btn-sm"
             >

@@ -85,9 +85,13 @@ export default function Client360Page() {
     fetchClientData();
   }, [fetchClientData]);
 
-  const handleCreateJob = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateJob = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!client) return;
+    if (!newJobForm.title.trim()) {
+      alert("Please enter a job scope or title.");
+      return;
+    }
     setCreatingJob(true);
     try {
       const payload = {
@@ -420,8 +424,8 @@ export default function Client360Page() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="client-job-form"
+              type="button"
+              onClick={() => handleCreateJob()}
               disabled={creatingJob}
               className="btn btn-primary btn-sm"
             >

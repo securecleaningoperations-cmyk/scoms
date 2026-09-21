@@ -85,31 +85,63 @@ export default function CalendarPage() {
   })}`;
   const todayStr = new Date().toISOString().split("T")[0];
 
-  const handleAddJob = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsAdding(true);
-    const client = clients.find((c) => c.name === addForm.client_name);
-    const { error } = await supabase.from("jobs").insert([
-      {
-        client_id: client?.id || null,
-        client: client?.name || addForm.client_name || "Unknown Client",
-        title: addForm.title,
-        location: addForm.location,
-        job_date: addForm.job_date,
-        start_time: addForm.start_time,
-        type: addForm.type,
-        status: "Created",
-      },
-    ]);
-    if (!error) {
-      setShowAddModal(false);
-      setAddForm({ ...addForm, title: "", location: "", client_name: "" });
-      fetchJobs();
-    } else {
-      console.error(error);
-      alert("Error scheduling job: " + error.message);
+  const handleAddJob = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!addForm.title.trim()) {
+      alert("Please enter a Job Title.");
+      return;
     }
-    setIsAdding(false);
+    if (!addForm.client_name.trim()) {
+      alert("Please select or enter a Client Facility.");
+      return;
+    }
+    if (!addForm.job_date) {
+      alert("Please select a Scheduled Date.");
+      return;
+    }
+
+    setIsAdding(true);
+    try {
+      const client = clients.find((c) => c.name === addForm.client_name);
+      const payload = {
+        client_id: client?.id || null,
+        client: client?.name || addForm.client_name.trim(),
+        title: addForm.title.trim(),
+        location: addForm.location.trim() || client?.address || "Facility On-site",
+        job_date: addForm.job_date,
+        start_time: addForm.start_time || "09:00",
+        type: addForm.type || "commercial",
+        status: "Created",
+      };
+
+      const { data, error } = await supabase.from("jobs").insert([payload]).select();
+      if (error) throw error;
+
+      // Dispatch global event for instant notification and sync across all tabs/pages
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(
+          new CustomEvent("scoms-entity-created", {
+            detail: { type: "job", title: payload.title },
+          })
+        );
+      }
+
+      setShowAddModal(false);
+      setAddForm({
+        client_name: clients[0]?.name || "",
+        job_date: new Date().toISOString().split("T")[0],
+        title: "",
+        location: "",
+        start_time: "09:00",
+        type: "commercial",
+      });
+      await fetchJobs();
+    } catch (err: any) {
+      console.error("Error scheduling job:", err);
+      alert("Error scheduling job: " + (err.message || "Failed to schedule job"));
+    } finally {
+      setIsAdding(false);
+    }
   };
 
   const handleDrop = async (e: React.DragEvent, targetDate: string) => {
@@ -305,17 +337,31 @@ export default function CalendarPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="schedule-form"
+              type="button"
+              onClick={() => handleAddJob()}
               disabled={isAdding}
-              className="btn btn-primary btn-sm"
+              className="btn btn-primary btn-sm flex items-center gap-1.5"
             >
-              {isAdding ? "Scheduling..." : "Schedule Job"}
+              {isAdding ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Scheduling...
+                </>
+              ) : (
+                "Schedule Job"
+              )}
             </button>
           </>
         }
       >
-        <form id="schedule-form" onSubmit={handleAddJob} className="space-y-4">
+        <form
+          id="schedule-form"
+          onSubmit={(e) => {
+            e.preventDefault();
+            handleAddJob();
+          }}
+          className="space-y-4"
+        >
           <FormField label="Job Title" required>
             <input
               required
@@ -328,19 +374,38 @@ export default function CalendarPage() {
           </FormField>
 
           <FormField label="Client Facility" required>
-            <select
-              required
-              className="form-input"
-              value={addForm.client_name}
-              onChange={(e) => setAddForm({ ...addForm, client_name: e.target.value })}
-            >
-              <option value="">Select client...</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.name}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
+            <div className="space-y-2">
+              <select
+                required
+                className="form-input"
+                value={addForm.client_name}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  const foundClient = clients.find((c) => c.name === val);
+                  setAddForm({
+                    ...addForm,
+                    client_name: val,
+                    location: foundClient?.address || addForm.location,
+                  });
+                }}
+              >
+                <option value="">Select client facility...</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.name}>
+                    {c.name}
+                  </option>
+                ))}
+                <option value="custom">+ Enter Custom Facility Name</option>
+              </select>
+              {addForm.client_name === "custom" && (
+                <input
+                  type="text"
+                  placeholder="Type facility name..."
+                  className="form-input text-sm"
+                  onChange={(e) => setAddForm({ ...addForm, client_name: e.target.value })}
+                />
+              )}
+            </div>
           </FormField>
 
           <FormField label="Facility Location">

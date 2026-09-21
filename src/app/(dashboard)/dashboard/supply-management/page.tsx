@@ -80,9 +80,12 @@ export default function SupplyManagementPage() {
     return { total, pending, activePipeline, urgentCount };
   }, [requests]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.item_name.trim()) return;
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!form.item_name.trim()) {
+      alert("Please enter an item description.");
+      return;
+    }
     setCreating(true);
     try {
       const reqNum = `SR-${Date.now().toString().slice(-6)}`;
@@ -315,8 +318,8 @@ export default function SupplyManagementPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="supply-form"
+              type="button"
+              onClick={() => handleCreate()}
               disabled={creating}
               className="btn btn-primary btn-sm"
             >

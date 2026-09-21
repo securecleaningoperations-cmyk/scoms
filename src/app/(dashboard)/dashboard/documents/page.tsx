@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { FileText, Upload, Plus, Loader2, Search, Eye, Download, Clock, X, CheckCircle, File, Trash2, Video } from "lucide-react";
+import { FileText, Upload, Plus, Loader2, Search, Eye, Download, Clock, X, CheckCircle, File, Trash2, Video, Edit3 } from "lucide-react";
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 const BUCKET = "documents";
@@ -17,6 +17,8 @@ export default function DocumentsPage() {
   const [showDocModal, setShowDocModal] = useState(false);
   const [showTplModal, setShowTplModal] = useState(false);
   const [viewingDoc, setViewingDoc] = useState<any | null>(null);
+  const [editingDoc, setEditingDoc] = useState<any | null>(null);
+  const [editDocForm, setEditDocForm] = useState({ name: "", category: "employee", retention_period_years: 5 });
   const [isAdding, setIsAdding] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -111,6 +113,33 @@ export default function DocumentsPage() {
     await supabase.from('documents').delete().eq('id', id);
     await fetchData();
     setDeletingId(null);
+  };
+
+  const openEditDoc = (doc: any) => {
+    setEditingDoc(doc);
+    setEditDocForm({
+      name: doc.name || "",
+      category: doc.category || "employee",
+      retention_period_years: doc.retention_period_years || 5,
+    });
+  };
+
+  const handleSaveDocEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingDoc) return;
+    try {
+      await supabase.from('documents').update({
+        name: editDocForm.name,
+        category: editDocForm.category,
+        retention_period_years: Number(editDocForm.retention_period_years),
+        updated_at: new Date().toISOString()
+      }).eq('id', editingDoc.id);
+
+      setDocuments(prev => prev.map(d => d.id === editingDoc.id ? { ...d, ...editDocForm } : d));
+      setEditingDoc(null);
+    } catch (err: any) {
+      alert("Failed to update document: " + err.message);
+    }
   };
 
   const handleAddTemplate = async (e: React.FormEvent) => {
@@ -267,8 +296,9 @@ export default function DocumentsPage() {
                       <td className="p-4 pr-6 text-right">
                         <div className="flex justify-end gap-2">
                           <button onClick={() => setViewingDoc(d)} className="p-1.5 hover:bg-slate-100 rounded-lg text-blue-600" title="View"><Eye className="w-4 h-4" /></button>
+                          <button onClick={() => openEditDoc(d)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600 hover:text-blue-600" title="Edit Metadata"><Edit3 className="w-4 h-4" /></button>
                           <button onClick={() => handleDownload(d)} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-600" title="Download"><Download className="w-4 h-4" /></button>
-                          <button onClick={() => handleDeleteDoc(d.id)} disabled={deletingId === d.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400"><Trash2 className="w-4 h-4" /></button>
+                          <button onClick={() => handleDeleteDoc(d.id)} disabled={deletingId === d.id} className="p-1.5 hover:bg-red-50 rounded-lg text-red-400" title="Delete"><Trash2 className="w-4 h-4" /></button>
                         </div>
                       </td>
                     </tr>
@@ -372,6 +402,68 @@ export default function DocumentsPage() {
                 <button type="button" onClick={() => setShowTplModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button disabled={isAdding} type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-50">
                   {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : null} Save Template
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Document Metadata Modal */}
+      {editingDoc && (
+        <div className="fixed inset-0 bg-slate-900/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl p-6">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-slate-900">Edit Document Metadata</h3>
+              <button onClick={() => setEditingDoc(null)}><X className="w-5 h-5 text-slate-400 hover:text-slate-700" /></button>
+            </div>
+            <form onSubmit={handleSaveDocEdit} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Document Name</label>
+                <input
+                  required
+                  type="text"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-500"
+                  value={editDocForm.name}
+                  onChange={e => setEditDocForm({ ...editDocForm, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                <select
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900 capitalize focus:outline-none focus:border-blue-500"
+                  value={editDocForm.category}
+                  onChange={e => setEditDocForm({ ...editDocForm, category: e.target.value })}
+                >
+                  {['employee', 'client', 'vendor', 'corporate', 'financial', 'operations'].map(c => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Retention Period (Years)</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="30"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900 focus:outline-none focus:border-blue-500"
+                  value={editDocForm.retention_period_years}
+                  onChange={e => setEditDocForm({ ...editDocForm, retention_period_years: parseInt(e.target.value) || 5 })}
+                />
+              </div>
+              <div className="flex justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setEditingDoc(null)}
+                  className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-xs"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>

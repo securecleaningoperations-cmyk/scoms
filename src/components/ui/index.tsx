@@ -268,7 +268,27 @@ export function Modal({ open, onClose, title, description, children, footer, siz
 
         {/* Footer */}
         {footer && (
-          <div className="flex items-center justify-end gap-2 p-4 border-t border-border bg-bg-inset rounded-b-lg">
+          <div
+            className="flex items-center justify-end gap-2 p-4 border-t border-border bg-bg-inset rounded-b-lg"
+            onClick={(e) => {
+              const target = e.target as HTMLElement;
+              const btn = target.closest("button[form]") as HTMLButtonElement | null;
+              if (btn && btn.type === "submit") {
+                const formId = btn.getAttribute("form");
+                if (formId) {
+                  const formEl = document.getElementById(formId) as HTMLFormElement | null;
+                  if (formEl) {
+                    e.preventDefault();
+                    if (typeof formEl.requestSubmit === "function") {
+                      formEl.requestSubmit();
+                    } else {
+                      formEl.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+                    }
+                  }
+                }
+              }
+            }}
+          >
             {footer}
           </div>
         )}

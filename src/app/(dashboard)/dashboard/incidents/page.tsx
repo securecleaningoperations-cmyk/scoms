@@ -81,12 +81,19 @@ export default function IncidentsPage() {
   const fetchIncidents = useCallback(async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
+      const res = await fetch("/api/incidents");
+      if (res.ok) {
+        const json = await res.json();
+        if (json.data && Array.isArray(json.data)) {
+          setIncidents(json.data);
+          setLoading(false);
+          return;
+        }
+      }
+      const { data } = await supabase
         .from("incidents")
         .select("*")
         .order("created_at", { ascending: false });
-
-      if (error) throw error;
       setIncidents(data || []);
     } catch (err: any) {
       console.error("Failed to load incidents:", err.message);
@@ -108,26 +115,25 @@ export default function IncidentsPage() {
     return { total, critical, open, inCapa };
   }, [incidents]);
 
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.title.trim() || !form.description.trim()) return;
+  const handleCreate = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!form.title.trim()) {
+      alert("Please enter an incident title.");
+      return;
+    }
+    if (!form.description.trim()) {
+      alert("Please enter a description of the incident.");
+      return;
+    }
     setSaving(true);
     try {
-      const incNum = `INC-${Date.now().toString().slice(-6)}`;
-      const payload = {
-        incident_number: incNum,
-        title: form.title.trim(),
-        type: form.type,
-        severity: form.severity,
-        location: form.location.trim() || null,
-        description: form.description.trim(),
-        immediate_action: form.immediate_action.trim() || null,
-        status: "reported",
-        created_at: new Date().toISOString(),
-      };
-
-      const { error } = await supabase.from("incidents").insert([payload]);
-      if (error) throw error;
+      const res = await fetch("/api/incidents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || "Failed to submit incident report");
 
       setShowModal(false);
       setForm({
@@ -138,7 +144,8 @@ export default function IncidentsPage() {
         description: "",
         immediate_action: "",
       });
-      fetchIncidents();
+      await fetchIncidents();
+      alert("Incident report submitted successfully!");
     } catch (err: any) {
       alert("Error logging incident: " + err.message);
     } finally {
@@ -338,8 +345,8 @@ export default function IncidentsPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="incident-form"
+              type="button"
+              onClick={() => handleCreate()}
               disabled={saving}
               className="btn btn-danger btn-sm"
             >

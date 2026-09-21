@@ -128,6 +128,22 @@ export async function publishKbEntry(id: string) {
   if (error) throw error;
 }
 
+export async function deleteKbEntry(id: string) {
+  // Try server API first for service-role resilience
+  try {
+    const res = await fetch(`/api/kb-entries?id=${id}`, { method: 'DELETE' });
+    if (res.ok) return;
+  } catch (err) {
+    console.warn('Server API delete failed, trying direct Supabase client:', err);
+  }
+
+  const { error } = await supabase
+    .from('kb_entries')
+    .delete()
+    .eq('id', id);
+  if (error) throw error;
+}
+
 // ── Admin Config Service ─────────────────────────────────────────────────────
 
 export async function getBusinessHours() {

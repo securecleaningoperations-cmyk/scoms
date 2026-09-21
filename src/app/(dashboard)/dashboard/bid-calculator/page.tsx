@@ -130,8 +130,12 @@ export default function BidCalculatorPage() {
     };
   }, [bids]);
 
-  const handleCreateRequest = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleCreateRequest = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!newReqForm.title.trim()) {
+      alert("Please enter a bid title / assignment name.");
+      return;
+    }
     try {
       await createBidRequest({
         title: newReqForm.title,
@@ -142,7 +146,7 @@ export default function BidCalculatorPage() {
       setNewReqForm({ title: "", lead_id: "", client_id: "" });
       fetchAll();
     } catch (err: any) {
-      alert("Failed to create bid request: " + err.message);
+      alert("Error initializing bid: " + (err.message || "Failed to create bid"));
     }
   };
 
@@ -378,8 +382,8 @@ export default function BidCalculatorPage() {
               Cancel
             </button>
             <button
-              type="submit"
-              form="new-bid-form"
+              type="button"
+              onClick={() => handleCreateRequest()}
               className="btn btn-primary btn-sm"
             >
               Initialize Bid

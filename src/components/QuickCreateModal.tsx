@@ -264,12 +264,13 @@ export function QuickCreateModal({
           .from("jobs")
           .insert([
             {
-              title: jobForm.title,
+              title: jobForm.title.trim(),
+              client: selectedClient?.name || "Direct Assignment",
               client_id: jobForm.client_id || null,
-              location: jobForm.location || selectedClient?.name || null,
+              location: jobForm.location || selectedClient?.name || "Main Facility",
               status: "Created",
-              priority: jobForm.priority,
-              scheduled_date: jobForm.scheduled_date || null,
+              type: jobForm.service_type || "commercial",
+              job_date: jobForm.scheduled_date || new Date().toISOString().split("T")[0],
             },
           ])
           .select()

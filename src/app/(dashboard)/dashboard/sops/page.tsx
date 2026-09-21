@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import {
   FileText, Plus, Search, ChevronDown, ChevronUp, CheckCircle2,
   Clock, Archive, Edit3, Loader2, X, AlertCircle, Eye, Save,
-  Shield, Tag, Calendar, User
+  Shield, Tag, Calendar, User, Trash2
 } from 'lucide-react';
 
 interface SOP {
@@ -149,6 +149,17 @@ export default function SOPManagementPage() {
     fetchSOPs();
   };
 
+  const handleDeleteSOP = async (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this Standard Operating Procedure?')) return;
+    setSops(prev => prev.filter(s => s.id !== id));
+    try {
+      await supabase.from('sops').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Delete SOP error:', err);
+    }
+  };
+
   const filtered = sops.filter(s =>
     s.title.toLowerCase().includes(search.toLowerCase()) ||
     (s.scope ?? '').toLowerCase().includes(search.toLowerCase())
@@ -272,8 +283,11 @@ export default function SOPManagementPage() {
                         Archive
                       </button>
                     )}
-                    <button onClick={() => openEdit(sop)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
+                    <button onClick={() => openEdit(sop)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors" title="Edit SOP">
                       <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button onClick={(e) => handleDeleteSOP(sop.id, e)} className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors" title="Delete SOP">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                     <button onClick={() => setExpandedId(expandedId === sop.id ? null : sop.id)} className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors">
                       {expandedId === sop.id ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}

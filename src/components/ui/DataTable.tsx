@@ -344,7 +344,20 @@ export function DataTable<T extends Record<string, any>>({
                         )}
                       >
                         {col.render
-                          ? col.render(row[col.key], row, i)
+                          ? (() => {
+                              try {
+                                if (col.render.length === 1) {
+                                  return col.render(row, row, i);
+                                }
+                                return col.render(row[col.key], row, i);
+                              } catch {
+                                try {
+                                  return col.render(row, row, i);
+                                } catch {
+                                  return row[col.key] ?? "—";
+                                }
+                              }
+                            })()
                           : col.key === "status"
                           ? <StatusBadge status={String(row[col.key] || "—")} />
                           : (row[col.key] ?? "—")}

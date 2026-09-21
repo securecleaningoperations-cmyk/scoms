@@ -4,7 +4,8 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Video, Plus, Loader2, Link as LinkIcon, Calendar, Clock,
-  Users, CheckCircle2, Copy, Check, Sparkles, AlertCircle, Phone, ArrowLeft, Radio
+  Users, CheckCircle2, Copy, Check, Sparkles, AlertCircle, Phone, ArrowLeft, Radio,
+  Edit3, Trash2
 } from "lucide-react";
 import { JitsiMeetViewer } from "@/components/JitsiMeetViewer";
 
@@ -83,6 +84,7 @@ export default function MeetingsPage() {
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [editingMeeting, setEditingMeeting] = useState<MeetingRecord | null>(null);
   const [activeMeeting, setActiveMeeting] = useState<string | null>(null);
   const [activeMeetingTitle, setActiveMeetingTitle] = useState<string>('SCOMS Video Conference');
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -125,7 +127,7 @@ export default function MeetingsPage() {
       } else {
         setMeetings(DEFAULT_MEETINGS);
       }
-    } catch (e) {
+    } catch {
       setMeetings(DEFAULT_MEETINGS);
     } finally {
       setLoading(false);
@@ -144,39 +146,8 @@ export default function MeetingsPage() {
     setActiveMeeting(instantRoom);
   };
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsAdding(true);
-    const roomSlug = form.title.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 24);
-    const roomUUID = Math.random().toString(36).substring(2, 7);
-    const meetUrl = `SCOMS-${roomSlug || 'Walkthrough'}-${roomUUID}`;
-
-    const newMeeting: MeetingRecord = {
-      id: `meet-${Date.now()}`,
-      title: form.title,
-      scheduled_at: form.scheduled_time || new Date().toISOString(),
-      meet_url: meetUrl,
-      type: 'meeting',
-      status: 'scheduled',
-      host: form.host,
-      participants: form.participants,
-      purpose: form.purpose
-    };
-
-    try {
-      await supabase.from('communications').insert([{
-        title: newMeeting.title,
-        scheduled_at: newMeeting.scheduled_at,
-        meet_url: newMeeting.meet_url,
-        type: 'meeting',
-        content: newMeeting.purpose
-      }]);
-    } catch (err) {
-      console.warn('Saved meeting locally:', err);
-    }
-
-    setMeetings(prev => [newMeeting, ...prev]);
-    setShowModal(false);
+  const openCreateModal = () => {
+    setEditingMeeting(null);
     setForm({
       title: '',
       scheduled_time: '',
@@ -184,6 +155,89 @@ export default function MeetingsPage() {
       host: 'Operations Manager',
       participants: 'Commercial Client / Staff'
     });
+    setShowModal(true);
+  };
+
+  const openEditModal = (meeting: MeetingRecord, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditingMeeting(meeting);
+    setForm({
+      title: meeting.title,
+      scheduled_time: meeting.scheduled_at ? new Date(meeting.scheduled_at).toISOString().slice(0, 16) : '',
+      purpose: meeting.purpose,
+      host: meeting.host,
+      participants: meeting.participants
+    });
+    setShowModal(true);
+  };
+
+  const handleDeleteMeeting = async (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this scheduled meeting?')) return;
+    setMeetings(prev => prev.filter(m => m.id !== id));
+    try {
+      await supabase.from('communications').delete().eq('id', id);
+    } catch (err) {
+      console.warn('Saved meeting deletion locally:', err);
+    }
+  };
+
+  const handleSaveMeeting = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsAdding(true);
+
+    if (editingMeeting) {
+      const updated: MeetingRecord = {
+        ...editingMeeting,
+        title: form.title,
+        scheduled_at: form.scheduled_time || editingMeeting.scheduled_at,
+        host: form.host,
+        participants: form.participants,
+        purpose: form.purpose
+      };
+      setMeetings(prev => prev.map(m => m.id === editingMeeting.id ? updated : m));
+      try {
+        await supabase.from('communications').update({
+          title: updated.title,
+          scheduled_at: updated.scheduled_at,
+          content: updated.purpose
+        }).eq('id', editingMeeting.id);
+      } catch (err) {
+        console.warn('Updated meeting locally:', err);
+      }
+    } else {
+      const roomSlug = form.title.toLowerCase().replace(/[^a-z0-9]/g, '-').slice(0, 24);
+      const roomUUID = Math.random().toString(36).substring(2, 7);
+      const meetUrl = `SCOMS-${roomSlug || 'Walkthrough'}-${roomUUID}`;
+
+      const newMeeting: MeetingRecord = {
+        id: `meet-${Date.now()}`,
+        title: form.title,
+        scheduled_at: form.scheduled_time || new Date().toISOString(),
+        meet_url: meetUrl,
+        type: 'meeting',
+        status: 'scheduled',
+        host: form.host,
+        participants: form.participants,
+        purpose: form.purpose
+      };
+
+      try {
+        await supabase.from('communications').insert([{
+          title: newMeeting.title,
+          scheduled_at: newMeeting.scheduled_at,
+          meet_url: newMeeting.meet_url,
+          type: 'meeting',
+          content: newMeeting.purpose
+        }]);
+      } catch (err) {
+        console.warn('Saved meeting locally:', err);
+      }
+
+      setMeetings(prev => [newMeeting, ...prev]);
+    }
+
+    setShowModal(false);
     setIsAdding(false);
   };
 
@@ -292,7 +346,7 @@ export default function MeetingsPage() {
             </button>
 
             <button
-              onClick={() => setShowModal(true)}
+              onClick={openCreateModal}
               className="flex items-center gap-2 px-5 py-3.5 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 rounded-2xl font-bold text-sm transition"
             >
               <Plus className="w-4 h-4" />
@@ -375,6 +429,23 @@ export default function MeetingsPage() {
                       {meeting.title}
                     </h3>
                   </div>
+
+                  <div className="flex items-center gap-1 shrink-0">
+                    <button
+                      onClick={(e) => openEditModal(meeting, e)}
+                      className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                      title="Edit Meeting Details"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={(e) => handleDeleteMeeting(meeting.id, e)}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                      title="Delete Scheduled Meeting"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
 
                 <p className="text-xs text-slate-600 font-medium bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -432,13 +503,15 @@ export default function MeetingsPage() {
         })}
       </div>
 
-      {/* Schedule Conference Modal */}
+      {/* Schedule / Edit Conference Modal */}
       {showModal && (
         <div className="fixed inset-0 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-3xl w-full max-w-lg shadow-2xl p-6 sm:p-8 border border-slate-100 animate-in zoom-in-95 duration-150">
             <div className="flex items-center justify-between pb-4 border-b border-slate-100">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Schedule Video Conference</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {editingMeeting ? 'Edit Video Conference' : 'Schedule Video Conference'}
+                </h3>
                 <p className="text-xs text-slate-500 mt-0.5">Encrypted Jitsi room with calendar invite</p>
               </div>
               <button
@@ -449,7 +522,7 @@ export default function MeetingsPage() {
               </button>
             </div>
 
-            <form onSubmit={handleAdd} className="space-y-4 pt-4">
+            <form onSubmit={handleSaveMeeting} className="space-y-4 pt-4">
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                   Meeting Title
@@ -534,7 +607,7 @@ export default function MeetingsPage() {
                   className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-md shadow-blue-900/20 transition"
                 >
                   {isAdding ? <Loader2 className="w-4 h-4 animate-spin" /> : <Video className="w-4 h-4" />}
-                  <span>Generate Video Room</span>
+                  <span>{editingMeeting ? 'Save Changes' : 'Generate Video Room'}</span>
                 </button>
               </div>
             </form>
