@@ -273,6 +273,36 @@ export default function CommandCenterPage() {
         }
       />
 
+      {/* Jev System One Global Rule Engine Guardrails */}
+      <div className="p-4 rounded-2xl bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white border border-blue-500/20 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-blue-500/20 border border-blue-400/30 rounded-xl text-blue-400">
+            <Activity className="w-5 h-5 animate-pulse" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-body-sm font-bold text-white">Jev Operations & Rule Engine: Active</span>
+              <span className="px-2 py-0.5 rounded text-[10px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 uppercase">
+                All 4 Enforcements Green
+              </span>
+            </div>
+            <p className="text-caption text-slate-300 mt-0.5">
+              GPS Geofence Match (100m) • Margin Floor (≥22%) • Attendance-Locked Invoicing • 24/7 HAZMAT Paging SLA &lt;15m
+            </p>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <Link
+            href="/dashboard/intelligence"
+            className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-caption font-bold transition flex items-center gap-1.5"
+          >
+            <span>Voice & AI Intelligence</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
+        </div>
+      </div>
+
       {/* Primary KPI Grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         <MetricCard

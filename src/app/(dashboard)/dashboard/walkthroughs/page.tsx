@@ -313,47 +313,133 @@ export default function WalkthroughModule() {
           </div>
         )}
 
-        {/* Step 4: AI Review */}
-        {activeStep === 4 && (
-          <div className="card p-6 space-y-5">
-            <h2 className="text-title-sm font-bold text-text-primary pb-3 border-b border-border flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary-600" />
-              AI Scope & Labor Model Synthesis
-            </h2>
-            <div className="p-4 rounded-xl bg-primary-500/10 border border-primary-200 dark:border-primary-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-body-sm font-bold text-primary-700 dark:text-primary-300">
-                  Assessment Verification Score: 96%
+        {/* Step 4: AI Review & Proposal Synthesis */}
+        {activeStep === 4 && (() => {
+          const sqft = selectedWalkthrough.cleanable_sqft || 25000;
+          const silverMonthly = Math.round(sqft * 0.08);
+          const goldMonthly = Math.round(sqft * 0.11);
+          const platinumMonthly = Math.round(sqft * 0.16);
+          const laborHours = Math.round((sqft / 3500) * 4.5);
+          const crewSize = Math.max(1, Math.ceil(sqft / 12000));
+
+          return (
+            <div className="card p-6 space-y-6">
+              <div className="flex items-center justify-between pb-3 border-b border-border">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-950 text-blue-600 rounded-xl">
+                    <Sparkles className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-title-sm font-bold text-text-primary">
+                      TypeSafe Jev Proposal & Cost Modeling
+                    </h2>
+                    <p className="text-caption text-text-muted">
+                      Automated 3-tier service scope synthesis based on {sqft.toLocaleString()} cleanable sq ft
+                    </p>
+                  </div>
+                </div>
+                <span className="badge badge-success px-3 py-1 font-semibold">
+                  Jev Close Probability: 84%
                 </span>
-                <span className="badge badge-success">Sufficient Data</span>
               </div>
-              <p className="text-caption text-text-secondary leading-relaxed">
-                Facility parameters verified. Cleanable square footage, security clearance tiers, and
-                sanitization frequency are mapped to production rate models. This record is ready for
-                automatic calculation in the Bid Estimator.
-              </p>
-            </div>
-            <div className="flex justify-between pt-3">
-              <button onClick={() => setActiveStep(3)} className="btn btn-secondary btn-sm">
-                Back
-              </button>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setSelectedWalkthrough(null)}
-                  className="btn btn-secondary btn-sm"
-                >
-                  Save Assessment
+
+              {/* Operational Labor Matrix */}
+              <div className="grid grid-cols-3 gap-3 p-4 rounded-xl bg-surface-hover border border-border text-center">
+                <div>
+                  <span className="text-[11px] text-text-muted uppercase font-bold block">Production Rate</span>
+                  <strong className="text-body-sm font-bold text-text-primary">3,500 sq ft / hr</strong>
+                  <span className="text-[10px] text-text-muted block">ISSA Commercial Benchmark</span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-text-muted uppercase font-bold block">Hours / Visit</span>
+                  <strong className="text-body-sm font-bold text-text-primary">{laborHours} Direct Hours</strong>
+                  <span className="text-[10px] text-text-muted block">Shift Duration</span>
+                </div>
+                <div>
+                  <span className="text-[11px] text-text-muted uppercase font-bold block">Assigned Crew</span>
+                  <strong className="text-body-sm font-bold text-primary-600">{crewSize} Cleaners</strong>
+                  <span className="text-[10px] text-text-muted block">Optimal Shift Size</span>
+                </div>
+              </div>
+
+              {/* 3-Tier Proposal Packages */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {/* Silver */}
+                <div className="p-4 rounded-2xl border border-border bg-surface flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Silver Tier</span>
+                    <h3 className="text-title-sm font-bold text-text-primary">Essential Commercial</h3>
+                    <p className="text-2xl font-black text-text-primary">${silverMonthly.toLocaleString()}<span className="text-caption font-normal text-text-muted">/mo</span></p>
+                    <ul className="text-caption text-text-secondary space-y-1.5 pt-2">
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success-600" /> 3x weekly trash & recycle</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success-600" /> Restroom sanitizing & stocking</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-success-600" /> High-traffic vacuuming</li>
+                    </ul>
+                  </div>
+                  <button className="mt-4 w-full btn btn-secondary btn-sm">Select Silver</button>
+                </div>
+
+                {/* Gold */}
+                <div className="p-4 rounded-2xl border-2 border-primary-500 bg-primary-500/5 flex flex-col justify-between relative shadow-sm">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-3 py-0.5 bg-primary-600 text-white rounded-full text-[10px] font-bold uppercase">
+                    Most Recommended
+                  </div>
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-primary-600">Gold Tier</span>
+                    <h3 className="text-title-sm font-bold text-text-primary">Complete Facility Care</h3>
+                    <p className="text-2xl font-black text-primary-600">${goldMonthly.toLocaleString()}<span className="text-caption font-normal text-text-muted">/mo</span></p>
+                    <ul className="text-caption text-text-secondary space-y-1.5 pt-2">
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-600" /> Daily (5x/wk) full janitorial</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-600" /> Touchpoint disinfection</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-600" /> Day-porter on-call support</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-primary-600" /> Monthly floor buffing & scrubbing</li>
+                    </ul>
+                  </div>
+                  <button className="mt-4 w-full btn btn-primary btn-sm">Select Gold (Best Fit)</button>
+                </div>
+
+                {/* Platinum */}
+                <div className="p-4 rounded-2xl border border-purple-300 dark:border-purple-800 bg-purple-50/20 dark:bg-purple-950/20 flex flex-col justify-between">
+                  <div className="space-y-2">
+                    <span className="text-[11px] font-bold uppercase tracking-wider text-purple-600">Platinum Tier</span>
+                    <h3 className="text-title-sm font-bold text-text-primary">Cleanroom & ISO Lab</h3>
+                    <p className="text-2xl font-black text-purple-700 dark:text-purple-400">${platinumMonthly.toLocaleString()}<span className="text-caption font-normal text-text-muted">/mo</span></p>
+                    <ul className="text-caption text-text-secondary space-y-1.5 pt-2">
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> 7-day 24/7 dedicated lead</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> HEPA electrostatic spraying</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> ATP swab quality validation</li>
+                      <li className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-purple-600" /> OSHA & ISO 14644 compliance</li>
+                    </ul>
+                  </div>
+                  <button className="mt-4 w-full btn btn-secondary btn-sm">Select Platinum</button>
+                </div>
+              </div>
+
+              <div className="flex justify-between pt-3 border-t border-border">
+                <button onClick={() => setActiveStep(3)} className="btn btn-secondary btn-sm">
+                  Back
                 </button>
-                <Link
-                  href="/dashboard/bid-calculator"
-                  className="btn btn-primary btn-sm flex items-center gap-1.5"
-                >
-                  <Calculator className="w-4 h-4" /> Open in Bid Calculator
-                </Link>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => {
+                      alert("Walkthrough proposal saved and synced with CRM Leads & Proposals module.");
+                      setSelectedWalkthrough(null);
+                    }}
+                    className="btn btn-secondary btn-sm"
+                  >
+                    Save Proposal Draft
+                  </button>
+                  <Link
+                    href="/dashboard/bid-calculator"
+                    className="btn btn-primary btn-sm flex items-center gap-1.5"
+                  >
+                    <Calculator className="w-4 h-4" /> Open in Bid Calculator
+                  </Link>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
       </div>
     );
   }

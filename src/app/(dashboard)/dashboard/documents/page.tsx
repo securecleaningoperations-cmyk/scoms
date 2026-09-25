@@ -40,11 +40,37 @@ export default function DocumentsPage() {
     setLoading(false);
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const [jevDocAudit, setJevDocAudit] = useState<any>(null);
+  const [analyzingDoc, setAnalyzingDoc] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files?.[0]) {
       const f = e.target.files[0];
       setSelectedFile(f);
-      if (!docForm.name) setDocForm(p => ({ ...p, name: f.name.replace(/\.[^/.]+$/, "") }));
+      const docName = f.name.replace(/\.[^/.]+$/, "");
+      if (!docForm.name) setDocForm(p => ({ ...p, name: docName }));
+
+      // Run Jev Document Compliance Audit
+      setAnalyzingDoc(true);
+      try {
+        const res = await fetch("/api/ai/jev/document-audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: docName, sourceFileExtension: f.name.split('.').pop() }),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setJevDocAudit(json.data);
+          setDocForm(p => ({
+            ...p,
+            category: json.data.category,
+          }));
+        }
+      } catch (err) {
+        console.warn("Jev doc audit error:", err);
+      } finally {
+        setAnalyzingDoc(false);
+      }
     }
   };
 
@@ -378,6 +404,28 @@ export default function DocumentsPage() {
               </div>
               <div><label className="block text-sm font-medium text-slate-700 mb-1">Document Name</label><input type="text" required className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900" value={docForm.name} onChange={e => setDocForm({ ...docForm, name: e.target.value })} placeholder="e.g. Q3 Report" /></div>
               <div><label className="block text-sm font-medium text-slate-700 mb-1">Category</label><select className="w-full border border-slate-200 rounded-lg px-3 py-2 text-slate-900 capitalize" value={docForm.category} onChange={e => setDocForm({ ...docForm, category: e.target.value })}>{['employee', 'client', 'vendor', 'corporate', 'financial', 'operations'].map(c => <option key={c} value={c}>{c}</option>)}</select></div>
+              
+              {analyzingDoc && (
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center gap-2 text-xs text-blue-700">
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                  <span>Auditing retention schedule with TypeSafe Jev...</span>
+                </div>
+              )}
+
+              {jevDocAudit && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl space-y-1 text-xs">
+                  <p className="font-bold text-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Jev Legal Compliance Validated</span>
+                  </p>
+                  <p className="text-emerald-700">
+                    Statutory Schedule: <strong>{jevDocAudit.retentionLabel}</strong>
+                  </p>
+                  <p className="text-[11px] text-emerald-600">
+                    Original binary file will be preserved unaltered with branded cover sheet capability.
+                  </p>
+                </div>
+              )}
               <div className="flex justify-end gap-3 pt-2">
                 <button type="button" onClick={() => setShowDocModal(false)} className="px-4 py-2 border border-slate-200 rounded-lg text-sm font-medium text-slate-700 hover:bg-slate-50">Cancel</button>
                 <button disabled={isAdding} type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold flex items-center gap-2 disabled:opacity-50">

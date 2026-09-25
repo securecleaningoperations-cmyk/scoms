@@ -40,27 +40,13 @@ export async function POST(request: NextRequest) {
     let intent = 'unknown';
 
     if (transcript) {
-      // Simple intent classification without external AI API
-      const lower = transcript.toLowerCase();
-      if (lower.includes('quote') || lower.includes('price') || lower.includes('bid') || lower.includes('estimate')) {
-        intent = 'quote_request';
-        aiSummary = 'Caller requested a quote or pricing information.';
-      } else if (lower.includes('complaint') || lower.includes('problem') || lower.includes('issue') || lower.includes('unhappy')) {
-        intent = 'complaint';
-        aiSummary = 'Caller expressed dissatisfaction or reported an issue.';
-      } else if (lower.includes('schedule') || lower.includes('appointment') || lower.includes('booking')) {
-        intent = 'scheduling';
-        aiSummary = 'Caller requested to schedule or modify an appointment.';
-      } else if (lower.includes('apply') || lower.includes('job') || lower.includes('position')) {
-        intent = 'job_inquiry';
-        aiSummary = 'Caller inquired about employment opportunities.';
-      } else if (lower.includes('supply') || lower.includes('equipment') || lower.includes('product')) {
-        intent = 'vendor';
-        aiSummary = 'Caller appears to be a vendor or supplier.';
-      } else {
-        intent = 'general_inquiry';
-        aiSummary = 'General inquiry call. Manual review recommended.';
-      }
+      const { jevJudgePhoneCall } = await import('@/lib/typesafe');
+      const jevResult = await jevJudgePhoneCall({
+        transcript,
+      });
+
+      intent = jevResult.departmentRoute;
+      aiSummary = `${jevResult.urgencyLabel} (${jevResult.callerType.replace(/_/g, ' ')}): ${jevResult.recommendedAction}`;
     }
 
     await supabase.from('phone_calls').update({

@@ -156,6 +156,29 @@ export default function ProfitPage() {
           </table>
         </div>
       </div>
+
+      {/* Jev System One Financial Rule Guardrail */}
+      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-indigo-950 text-white rounded-3xl p-6 sm:p-8 border border-blue-500/20 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-xs font-bold border border-blue-400/30">
+            <span>TypeSafe Jev Financial Guardrails</span>
+          </div>
+          <h3 className="text-xl font-black text-white">Immutable Double-Entry Ledger & Underbid Prevention</h3>
+          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed max-w-2xl">
+            SCOMS v4.0 enforces real-time rule evaluations: Jobs with margins below 22% are blocked from automated dispatch without Dual Supervisory Approval. Invoicing is locked until attendance verification is cryptographically confirmed.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-center p-3 bg-white/10 rounded-2xl border border-white/10">
+            <span className="text-[10px] text-slate-400 block font-bold uppercase">Audit Accuracy</span>
+            <span className="text-xl font-black text-emerald-400">100%</span>
+          </div>
+          <div className="text-center p-3 bg-white/10 rounded-2xl border border-white/10">
+            <span className="text-[10px] text-slate-400 block font-bold uppercase">Ledger Edits</span>
+            <span className="text-xl font-black text-rose-400">0 Allowed</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

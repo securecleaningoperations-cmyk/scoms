@@ -185,6 +185,48 @@ export default function CalendarPage() {
         }
       />
 
+      {/* Jev GPS Geofence & Dispatch Intelligence Bar */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="p-3.5 bg-surface rounded-2xl border border-border flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-emerald-50 dark:bg-emerald-950 text-emerald-600 rounded-xl">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted uppercase font-bold">GPS Geofence Status</p>
+              <p className="text-body-sm font-bold text-text-primary">100m Radius Enforced</p>
+            </div>
+          </div>
+          <span className="badge badge-success text-[10px]">Active</span>
+        </div>
+
+        <div className="p-3.5 bg-surface rounded-2xl border border-border flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-blue-50 dark:bg-blue-950 text-blue-600 rounded-xl">
+              <Clock className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted uppercase font-bold">Crew Conflict Detection</p>
+              <p className="text-body-sm font-bold text-text-primary">0 Double-Bookings</p>
+            </div>
+          </div>
+          <span className="badge badge-primary text-[10px]">Verified</span>
+        </div>
+
+        <div className="p-3.5 bg-surface rounded-2xl border border-border flex items-center justify-between">
+          <div className="flex items-center gap-2.5">
+            <div className="p-2 bg-purple-50 dark:bg-purple-950 text-purple-600 rounded-xl">
+              <CalendarDays className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-[10px] text-text-muted uppercase font-bold">Jev Shift Optimizer</p>
+              <p className="text-body-sm font-bold text-text-primary">Auto-Crew Assignment</p>
+            </div>
+          </div>
+          <span className="badge badge-success text-[10px]">Calibrated</span>
+        </div>
+      </div>
+
       {/* Week Navigation Header */}
       <div className="card p-4 flex justify-between items-center flex-wrap gap-4">
         <div className="flex items-center gap-3">

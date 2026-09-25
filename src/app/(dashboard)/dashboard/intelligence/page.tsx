@@ -120,50 +120,70 @@ export default function IntelligenceDashboard() {
     }
   };
 
-  const handleSimulateCall = () => {
+  const handleSimulateCall = async () => {
     setIsSimulating(true);
     setSimResult(null);
 
-    setTimeout(() => {
-      let scenarioData: any = {};
-      if (simScenario === "emergency_cleanroom") {
-        scenarioData = {
-          caller: "Dr. Karen Wells (BioTech Lead)",
-          phone: "(512) 555-8910",
-          intent: "EMERGENCY_SPILL_HAZMAT",
-          confidence: "99.4%",
-          sentiment: "Urgent / Critical",
-          aiAction: "Immediate Paging: Dispatched On-Call Biohazard Crew Lead with SLA < 45m.",
-          ticketGenerated: "EMG-2026-9901",
-          transcriptSnippet: "AI Phone Agent detected 'spill' and 'cleanroom'. Cross-referenced active contract SLA. Auto-escalated to tier 1 emergency."
-        };
-      } else if (simScenario === "sales_quote") {
-        scenarioData = {
-          caller: "Arthur Pendelton (Facility Director)",
-          phone: "(214) 555-4421",
-          intent: "COMMERCIAL_BID_INQUIRY",
-          confidence: "97.8%",
-          sentiment: "Interested / Professional",
-          aiAction: "Calculated Bid Tier: Silver ($3,100/mo), Gold ($4,340/mo). Dispatched Calendly walkthrough link.",
-          ticketGenerated: "LEAD-2026-4402",
-          transcriptSnippet: "AI Phone Agent recognized 35,000 sq ft office specification. Captured corporate domain and created prospective proposal."
-        };
-      } else {
-        scenarioData = {
-          caller: "Anonymous / Custom Caller",
-          phone: "(800) 555-0100",
-          intent: "GENERAL_INQUIRY",
-          confidence: "92.1%",
-          sentiment: "Neutral",
-          aiAction: "Answered facility cleaning hours (Mon-Fri 10:00 AM - 5:30 PM). Sent contact sheet.",
-          ticketGenerated: "INQ-2026-1188",
-          transcriptSnippet: simCustomText || "General operational inquiry handled without human escalation."
-        };
-      }
+    let speechPrompt = "";
+    let callerPhone = "(512) 555-8910";
+    if (simScenario === "emergency_cleanroom") {
+      speechPrompt = "Hello, this is Dr. Karen Wells at Austin BioTech. We had an accidental solvent spill in Cleanroom Lab 3. We need certified HAZMAT sanitization crew right away.";
+      callerPhone = "(512) 555-8910";
+    } else if (simScenario === "sales_quote") {
+      speechPrompt = "Hi there, looking for commercial cleaning for our 45,000 sq ft logistics distribution facility in Fort Worth. Need daily trash, floor scrubbing, and weekly sanitization.";
+      callerPhone = "(214) 555-0811";
+    } else {
+      speechPrompt = simCustomText || "General operational inquiry regarding company cleaning schedule and pricing.";
+      callerPhone = "(800) 555-0100";
+    }
 
-      setSimResult(scenarioData);
+    try {
+      const res = await fetch("/api/ai/jev/phone-agent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: speechPrompt,
+          fromNumber: callerPhone,
+          autoExecuteAction: true,
+        }),
+      });
+
+      const json = await res.json();
+      if (json.success && json.data) {
+        const jev = json.data;
+        const scenarioData = {
+          caller: jev.callerType.replace(/_/g, ' '),
+          phone: callerPhone,
+          intent: jev.departmentRoute.toUpperCase(),
+          confidence: `${Math.round(jev.confidence * 100)}%`,
+          sentiment: jev.sentiment,
+          aiAction: jev.recommendedAction,
+          ticketGenerated: json.createdRecord ? `${json.createdRecord.type.toUpperCase()}-${Date.now().toString(36).slice(-4)}` : "RESOLVED",
+          transcriptSnippet: `Model: ${jev.model} • Urgency: ${jev.urgencyLabel} (${jev.urgencyRating}/4). ${jev.requiresHumanOverride ? 'Supervisory escalation triggered.' : 'Autonomous execution completed.'}`
+        };
+
+        setSimResult(scenarioData);
+
+        // Add to call list
+        const newCallRecord: CallRecord = {
+          id: `call-${Date.now()}`,
+          started_at: new Date().toISOString(),
+          from_number: callerPhone,
+          caller_type: jev.callerType,
+          intent: jev.departmentRoute,
+          status: "completed",
+          duration: "1m 45s",
+          transcript: `Caller: "${speechPrompt}"\n\nAI Phone Agent: "${jev.suggestedTwiMLGreeting}"\n\nJev Decision: ${jev.recommendedAction}`,
+          action_taken: jev.recommendedAction,
+        };
+
+        setCalls(prev => [newCallRecord, ...prev]);
+      }
+    } catch (err) {
+      console.error("Jev simulation error:", err);
+    } finally {
       setIsSimulating(false);
-    }, 1200);
+    }
   };
 
   const handleAddArticle = (e: React.FormEvent) => {
