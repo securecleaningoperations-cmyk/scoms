@@ -126,10 +126,6 @@ export default function DashboardPage() {
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(val);
 
-  return (
-    <div className="p-4 sm:p-8 max-w-[1400px] mx-auto space-y-6 font-sans pb-24">
-
-
   // ── Executive Dashboard Layout ──────────────────────────
   const renderSuperAdmin = () => (
     <>

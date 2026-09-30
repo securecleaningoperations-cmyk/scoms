@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { supabase } from "@/lib/supabase";
 import {
   Video, Plus, Loader2, Link as LinkIcon, Calendar, Clock,
@@ -25,6 +25,14 @@ interface MeetingRecord {
 
 
 export default function MeetingsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-[80vh] items-center justify-center"><Loader2 className="w-8 h-8 text-blue-500 animate-spin" /></div>}>
+      <MeetingsComponent />
+    </Suspense>
+  );
+}
+
+function MeetingsComponent() {
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
