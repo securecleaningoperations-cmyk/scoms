@@ -34,6 +34,9 @@ export interface UserProfile {
   tenantId?: string;
   locationId?: string;
   avatarUrl?: string;
+  username?: string;
+  employeeId?: string;
+  department?: string;
 }
 
 interface AuthState {
@@ -43,6 +46,7 @@ interface AuthState {
   isAuthenticated: boolean;
   activeRole: ScomsRole;
   setActiveRole: (role: ScomsRole) => void;
+  loginAsUser: (profile: UserProfile) => void;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 }
@@ -56,6 +60,7 @@ const AuthContext = createContext<AuthState>({
   isAuthenticated: false,
   activeRole: "super_admin",
   setActiveRole: () => {},
+  loginAsUser: () => {},
   signOut: async () => {},
   refreshProfile: async () => {},
 });
@@ -159,6 +164,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     setActiveRole(role);
 
+    // Generate sensible employeeId and username if not present
+    const cleanFirst = (firstName || authUser.user_metadata?.first_name || (authUser.email ? authUser.email.split('@')[0] : "user")).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const cleanLast = (lastName || authUser.user_metadata?.last_name || "").toLowerCase().replace(/[^a-z0-9]/g, '');
+    const username = authUser.user_metadata?.username || `@${cleanFirst}${cleanLast ? `.${cleanLast[0]}` : ''}`;
+    const employeeId = authUser.user_metadata?.employee_id || 
+      (role === 'super_admin' ? 'EMP-0001' : 
+       role === 'operations_manager' ? 'EMP-1042' : 
+       role === 'supervisor' ? 'EMP-2015' : 
+       role === 'field_employee' ? 'EMP-3015' : 
+       role === 'client_admin' || role === 'client_user' ? 'CLI-8092' : 'EMP-5000');
+
     return {
       id: authUser.id,
       email: authUser.email || "",
@@ -166,6 +182,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       lastName: lastName || authUser.user_metadata?.last_name || "",
       role,
       tenantId,
+      username,
+      employeeId,
+      department: authUser.user_metadata?.department || (role === 'super_admin' ? 'Executive Platform Ownership' : 'Field Operations')
     };
   }, []);
 
@@ -174,11 +193,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (authUser) {
       const profile = await buildProfile(authUser);
       setUser(profile);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem("scoms_active_user", JSON.stringify(profile));
+      }
     }
   }, [buildProfile]);
 
+  const loginAsUser = useCallback((profile: UserProfile) => {
+    setUser(profile);
+    setActiveRole(profile.role);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem("scoms_active_user", JSON.stringify(profile));
+      window.dispatchEvent(new CustomEvent("scoms-auth-changed", { detail: profile }));
+    }
+  }, []);
+
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    try {
+      await supabase.auth.signOut();
+    } catch {}
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem("scoms_active_user");
+      window.dispatchEvent(new CustomEvent("scoms-auth-changed", { detail: null }));
+    }
     setUser(null);
     setSession(null);
   }, []);
@@ -188,13 +225,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const init = async () => {
       try {
+        // First check custom logged-in user in localStorage
+        if (typeof window !== 'undefined') {
+          const cached = localStorage.getItem("scoms_active_user");
+          if (cached) {
+            try {
+              const parsed = JSON.parse(cached);
+              if (parsed && parsed.role) {
+                if (mounted) {
+                  setUser(parsed);
+                  setActiveRole(parsed.role);
+                  setIsLoading(false);
+                }
+                return;
+              }
+            } catch (e) {
+              console.warn("Could not parse cached user", e);
+            }
+          }
+        }
+
         const { data: { session: currentSession } } = await supabase.auth.getSession();
         if (!mounted) return;
 
         if (currentSession?.user) {
           setSession(currentSession);
           const profile = await buildProfile(currentSession.user);
-          if (mounted) setUser(profile);
+          if (mounted) {
+            setUser(profile);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem("scoms_active_user", JSON.stringify(profile));
+            }
+          }
         }
       } catch (err) {
         console.error("Auth init error:", err);
@@ -205,21 +267,47 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     init();
 
+    // Listen for custom login events from login page or profile switcher
+    const handleAuthEvent = (e: any) => {
+      if (!mounted) return;
+      if (e.detail) {
+        setUser(e.detail);
+        setActiveRole(e.detail.role);
+      } else {
+        setUser(null);
+      }
+    };
+
+    if (typeof window !== 'undefined') {
+      window.addEventListener("scoms-auth-changed", handleAuthEvent);
+    }
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, newSession) => {
       if (!mounted) return;
       setSession(newSession);
 
       if (newSession?.user) {
         const profile = await buildProfile(newSession.user);
-        if (mounted) setUser(profile);
+        if (mounted) {
+          setUser(profile);
+          if (typeof window !== 'undefined') {
+            localStorage.setItem("scoms_active_user", JSON.stringify(profile));
+          }
+        }
       } else {
-        setUser(null);
+        // Don't wipe custom user if using role demo login
+        if (typeof window !== 'undefined' && !localStorage.getItem("scoms_active_user")) {
+          setUser(null);
+        }
       }
     });
 
     return () => {
       mounted = false;
       subscription.unsubscribe();
+      if (typeof window !== 'undefined') {
+        window.removeEventListener("scoms-auth-changed", handleAuthEvent);
+      }
     };
   }, [buildProfile]);
 
@@ -232,6 +320,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!user,
         activeRole,
         setActiveRole,
+        loginAsUser,
         signOut,
         refreshProfile,
       }}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import {
   Shield, CheckCircle2, ArrowRight, Building2, Users,
@@ -9,6 +10,33 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
+  const [user, setUser] = useState<{ firstName: string; lastName: string; role: string; employeeId?: string } | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem("scoms_active_user");
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (parsed && parsed.firstName) {
+            setUser(parsed);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to read user session:", e);
+      }
+    }
+  }, []);
+
+  const signOut = () => {
+    if (typeof window !== "undefined") {
+      try {
+        localStorage.removeItem("scoms_active_user");
+        setUser(null);
+        window.location.reload();
+      } catch {}
+    }
+  };
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-blue-600 selection:text-white font-sans antialiased">
       {/* ── Top Announcement Banner ──────────────────────────────────── */}
@@ -49,27 +77,61 @@ export default function LandingPage() {
             <a href="#portals" className="hover:text-white transition-colors">Portals</a>
           </nav>
 
-          {/* Auth Actions */}
+          {/* Auth Actions (Dynamic based on Logged In Session) */}
           <div className="flex items-center gap-3">
-            <Link
-              href="/portal/login"
-              className="hidden sm:inline-flex text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-lg border border-slate-700/60 hover:border-slate-600 transition-colors"
-            >
-              Client Portal
-            </Link>
-            <Link
-              href="/employee/login"
-              className="hidden sm:inline-flex text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-lg border border-slate-700/60 hover:border-slate-600 transition-colors"
-            >
-              Field App
-            </Link>
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <span>Sign In</span>
-              <ArrowRight className="w-4 h-4" />
-            </Link>
+            {user ? (
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-700/80 text-xs">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-slate-400">Logged in:</span>
+                  <span className="font-bold text-white truncate max-w-[120px]">{user.firstName} {user.lastName}</span>
+                  <span className="text-[10px] font-mono text-blue-400 bg-blue-950 px-1.5 py-0.5 rounded border border-blue-800">
+                    {user.employeeId || "EMP-0001"}
+                  </span>
+                </div>
+                <Link
+                  href={
+                    user.role === "client_admin" || user.role === "client_user"
+                      ? "/portal/dashboard"
+                      : user.role === "field_employee"
+                      ? "/employee/dashboard"
+                      : "/dashboard"
+                  }
+                  className="inline-flex items-center gap-2 text-xs sm:text-sm font-bold bg-blue-600 hover:bg-blue-500 text-white px-4 py-2 rounded-xl shadow-lg transition"
+                >
+                  <span>Dashboard</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+                <button
+                  onClick={() => signOut()}
+                  className="text-xs text-slate-400 hover:text-rose-400 font-semibold px-2 py-1 transition"
+                >
+                  Sign Out
+                </button>
+              </div>
+            ) : (
+              <>
+                <Link
+                  href="/portal/login"
+                  className="hidden sm:inline-flex text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-lg border border-slate-700/60 hover:border-slate-600 transition-colors"
+                >
+                  Client Portal
+                </Link>
+                <Link
+                  href="/employee/login"
+                  className="hidden sm:inline-flex text-xs font-semibold text-slate-300 hover:text-white px-3 py-2 rounded-lg border border-slate-700/60 hover:border-slate-600 transition-colors"
+                >
+                  Field App
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 text-sm font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-lg shadow-blue-600/25 transition-all hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  <span>Sign In</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
@@ -103,20 +165,47 @@ export default function LandingPage() {
 
           {/* Primary Call to Actions */}
           <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
-            <Link
-              href="/login"
-              className="inline-flex items-center gap-2 text-base font-semibold bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
-            >
-              <span>Access Operations Portal</span>
-              <ArrowRight className="w-5 h-5" />
-            </Link>
-            <a
-              href="#modules"
-              className="inline-flex items-center gap-2 text-base font-semibold bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white px-7 py-4 rounded-xl border border-slate-700/80 transition-all"
-            >
-              <span>Explore Master Spec</span>
-              <ExternalLink className="w-4 h-4 text-slate-400" />
-            </a>
+            {user ? (
+              <>
+                <Link
+                  href={
+                    user.role === "client_admin" || user.role === "client_user"
+                      ? "/portal/dashboard"
+                      : user.role === "field_employee"
+                      ? "/employee/dashboard"
+                      : "/dashboard"
+                  }
+                  className="inline-flex items-center gap-2 text-base font-bold bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Resume Session ({user.firstName} • {user.employeeId || "Active"})</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 text-base font-semibold bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white px-6 py-4 rounded-xl border border-slate-700/80 transition-all"
+                >
+                  <span>Switch Role / Login</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/login"
+                  className="inline-flex items-center gap-2 text-base font-semibold bg-blue-600 hover:bg-blue-500 text-white px-8 py-4 rounded-xl shadow-xl shadow-blue-600/30 transition-all hover:scale-105 active:scale-95"
+                >
+                  <span>Access Operations Portal</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+                <a
+                  href="#modules"
+                  className="inline-flex items-center gap-2 text-base font-semibold bg-slate-900/90 hover:bg-slate-800 text-slate-200 hover:text-white px-7 py-4 rounded-xl border border-slate-700/80 transition-all"
+                >
+                  <span>Explore Master Spec</span>
+                  <ExternalLink className="w-4 h-4 text-slate-400" />
+                </a>
+              </>
+            )}
           </div>
 
           {/* Operational Metrics Bar */}

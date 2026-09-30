@@ -2,32 +2,33 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { MessageSquare, Video, Phone, Mail, Plus, Loader2, Search, Calendar, Bell } from "lucide-react";
+import { MessageSquare, Video, Phone, Mail, Plus, Loader2, Search, Calendar, Bell, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 export default function CommunicationsPage() {
   const [comms, setComms] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isAdding, setIsAdding] = useState(false);
-  const [activeTab, setActiveTab] = useState<"timeline" | "notifications" | "meetings">("timeline");
+  const [activeTab, setActiveTab] = useState<"timeline" | "meetings" | "notifications">("timeline");
   const [search, setSearch] = useState("");
 
   useEffect(() => { fetchData(); }, []);
 
   const fetchData = async () => {
     setLoading(true);
-    const [{ data: c }, { data: n }] = await Promise.all([
-      supabase.from('communications').select('*').order('created_at', { ascending: false }),
-      supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(20),
-    ]);
-    setComms(c || []);
-    setNotifications(n || []);
-    setLoading(false);
-  };
-
-  const handleScheduleMeeting = () => {
-    // Redirect to the dedicated meetings page instead of injecting fake data
-    window.location.href = "/dashboard/communications/meetings";
+    try {
+      const [{ data: c }, { data: n }] = await Promise.all([
+        supabase.from('communications').select('*').order('created_at', { ascending: false }),
+        supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(20),
+      ]);
+      setComms(c || []);
+      setNotifications(n || []);
+    } catch {
+      setComms([]);
+      setNotifications([]);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const typeIcon = (t: string) => ({
@@ -37,6 +38,26 @@ export default function CommunicationsPage() {
     call: <Phone className="w-4 h-4 text-emerald-500" />,
     meeting: <Calendar className="w-4 h-4 text-amber-500" />,
   }[t] || <MessageSquare className="w-4 h-4 text-slate-gray" />);
+
+  const safeFormatDate = (val: any) => {
+    if (!val) return 'Recent';
+    try {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? 'Recent' : d.toLocaleDateString();
+    } catch {
+      return 'Recent';
+    }
+  };
+
+  const safeFormatDateTime = (val: any) => {
+    if (!val) return 'Scheduled';
+    try {
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? 'Scheduled' : d.toLocaleString();
+    } catch {
+      return 'Scheduled';
+    }
+  };
 
   const typeBg = (t: string) => ({
     meet: 'bg-blue-50',
@@ -55,14 +76,27 @@ export default function CommunicationsPage() {
 
   return (
     <div className="p-8 max-w-[1200px] mx-auto space-y-8 pb-24">
-      <div className="flex justify-between items-end">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
         <div>
-          <h1 className="text-[38px] font-bold font-display text-ink-navy tracking-tight">Communication Center</h1>
-          <p className="text-slate-gray font-medium mt-1">Video meetings, emails, calls & notifications</p>
+          <h1 className="text-[34px] sm:text-[38px] font-bold font-display text-ink-navy tracking-tight">Communication Center</h1>
+          <p className="text-slate-gray font-medium mt-1">Live employee chat, video meetings & operational timeline</p>
         </div>
-        <button onClick={handleScheduleMeeting} className="cal-btn-primary flex items-center gap-2">
-          <Plus className="w-4 h-4" /> Schedule Meeting
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/communications/chat"
+            className="px-4 py-2.5 bg-white border border-slate-200 text-slate-700 hover:text-blue-600 rounded-xl text-xs sm:text-sm font-bold shadow-xs transition flex items-center gap-2"
+          >
+            <MessageSquare className="w-4 h-4 text-blue-600" />
+            <span>Open Team Chat</span>
+          </Link>
+          <Link
+            href="/dashboard/communications/meetings"
+            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold shadow-md shadow-blue-900/20 transition flex items-center gap-2"
+          >
+            <Video className="w-4 h-4" />
+            <span>Meetings Platform</span>
+          </Link>
+        </div>
       </div>
 
       <div className="grid grid-cols-4 gap-5">
@@ -105,7 +139,7 @@ export default function CommunicationsPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex justify-between items-start">
                     <p className="font-semibold text-ink-navy text-sm">{c.title || c.type?.replace('_', ' ')}</p>
-                    <span className="text-xs text-mist-gray">{new Date(c.created_at).toLocaleDateString()}</span>
+                    <span className="text-xs text-mist-gray">{safeFormatDate(c.created_at)}</span>
                   </div>
                   {c.notes && <p className="text-sm text-slate-gray mt-1 truncate">{c.notes}</p>}
                   {c.meet_url && (
@@ -127,7 +161,7 @@ export default function CommunicationsPage() {
                 <div className="w-9 h-9 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0"><Video className="w-4 h-4 text-blue-600" /></div>
                 <div className="flex-1">
                   <p className="font-semibold text-ink-navy text-sm">{m.title}</p>
-                  <p className="text-xs text-mist-gray mt-0.5">{m.scheduled_at ? new Date(m.scheduled_at).toLocaleString() : 'No date set'}</p>
+                  <p className="text-xs text-mist-gray mt-0.5">{safeFormatDateTime(m.scheduled_at)}</p>
                   {m.notes && <p className="text-sm text-slate-gray mt-1">{m.notes}</p>}
                   {m.meet_url && (
                     <a href={`/dashboard/communications/meetings?join=${m.meet_url}`} className="inline-flex items-center gap-1.5 mt-2 text-xs bg-signal-blue text-white px-3 py-1 rounded-lg font-semibold hover:opacity-90 transition-opacity">
@@ -149,7 +183,7 @@ export default function CommunicationsPage() {
                 <div className="flex-1">
                   <p className="font-semibold text-ink-navy text-sm">{n.subject || n.type}</p>
                   <p className="text-sm text-slate-gray mt-0.5">{n.message}</p>
-                  <p className="text-xs text-mist-gray mt-1">{new Date(n.created_at).toLocaleString()}</p>
+                  <p className="text-xs text-mist-gray mt-1">{safeFormatDateTime(n.created_at)}</p>
                 </div>
                 <span className="cal-badge text-xs">{n.type}</span>
               </div>

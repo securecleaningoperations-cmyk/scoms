@@ -152,6 +152,7 @@ interface NavChild {
   label: string;
   href: string;
   icon?: React.ElementType;
+  badge?: string;
 }
 
 interface NavGroup {
@@ -271,8 +272,9 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Communications",
     icon: MessageSquare,
     children: [
-      { label: "Timeline", href: "/dashboard/communications" },
+      { label: "Team Chat", href: "/dashboard/communications/chat", badge: "2" },
       { label: "Meetings", href: "/dashboard/communications/meetings" },
+      { label: "Timeline", href: "/dashboard/communications" },
     ],
   },
   {

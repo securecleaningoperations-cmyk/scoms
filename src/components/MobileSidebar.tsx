@@ -123,8 +123,9 @@ const navStructure = [
   {
     name: "Communications", icon: MessageSquare, href: "/dashboard/communications",
     children: [
-      { name: "Timeline", href: "/dashboard/communications" },
-      { name: "Meetings", href: "/dashboard/communications/meetings" }
+      { name: "Team Chat", href: "/dashboard/communications/chat" },
+      { name: "Meetings", href: "/dashboard/communications/meetings" },
+      { name: "Timeline", href: "/dashboard/communications" }
     ]
   },
   {
