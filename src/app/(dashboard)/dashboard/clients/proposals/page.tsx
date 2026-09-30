@@ -36,85 +36,7 @@ export default function ProposalsPage() {
     fetchProposals(); 
   }, []);
 
-  const DEFAULT_PROPOSALS: Proposal[] = [
-    {
-      id: 'prop-001',
-      proposal_number: 'PROP-TX4410',
-      title: 'Apex Logistics Tech Campus - Platinum Sanitization Scope',
-      status: 'sent',
-      silver_price: 2800,
-      gold_price: 3900,
-      platinum_price: 4950,
-      selected_tier: 'platinum',
-      leads: { company_name: 'Apex Logistics & Supply Chain' },
-      silver_details: {
-        frequency: "Weekly (1x)",
-        services: ["Commercial surface disinfection", "Trash removal & recycling", "Restroom deep sanitation"],
-        staff: 2,
-      },
-      gold_details: {
-        frequency: "3x / Week",
-        services: ["All Silver services", "High-traffic floor buffing & care", "Window & glass sanitation", "Breakroom degreasing"],
-        staff: 3,
-      },
-      platinum_details: {
-        frequency: "Daily (5x / Week)",
-        services: ["All Gold services", "Cleanroom compliance wiping", "Electrostatic EPA disinfectant misting", "Dedicated operations supervisor", "Quarterly carpet extraction"],
-        staff: 5,
-      }
-    },
-    {
-      id: 'prop-002',
-      proposal_number: 'PROP-TX4411',
-      title: 'Metro Surgical Tower - Gold Infection Control Protocol',
-      status: 'accepted',
-      silver_price: 4200,
-      gold_price: 5800,
-      platinum_price: 7200,
-      selected_tier: 'gold',
-      leads: { company_name: 'Metro Healthcare Network' },
-      silver_details: {
-        frequency: "3x / Week",
-        services: ["General clinical terminal cleaning", "Biohazard trash disposal", "Restroom medical sanitation"],
-        staff: 3,
-      },
-      gold_details: {
-        frequency: "Daily (7x / Week)",
-        services: ["Hospital-grade germicidal decontamination", "Operating suite turnover cleaning", "ATP bioluminescence surface testing", "Full compliance manifest logs"],
-        staff: 4,
-      },
-      platinum_details: {
-        frequency: "24/7 Day Porter + Night Shift",
-        services: ["Continuous sterile field maintenance", "Immediate spill & contamination response", "Negative pressure room sanitization", "Assigned infection control manager"],
-        staff: 6,
-      }
-    },
-    {
-      id: 'prop-003',
-      proposal_number: 'PROP-TX4412',
-      title: 'North Texas Freight Terminal - Commercial Janitorial Scope',
-      status: 'draft',
-      silver_price: 1950,
-      gold_price: 2750,
-      platinum_price: 3400,
-      leads: { company_name: 'North Texas Freight & Logistics' },
-      silver_details: {
-        frequency: "Weekly",
-        services: ["Dispatch office dusting & mopping", "Restroom replenishment & cleaning", "Industrial trash emptying"],
-        staff: 2,
-      },
-      gold_details: {
-        frequency: "3x / Week",
-        services: ["Warehouse floor scrubbing", "Restroom high-sanitization", "Breakroom deep clean", "Touchpoint wiping"],
-        staff: 3,
-      },
-      platinum_details: {
-        frequency: "5x / Week",
-        services: ["Full facility janitorial management", "Ride-on floor scrubbing", "Consumables inventory management", "Monthly safety audit review"],
-        staff: 4,
-      }
-    }
-  ];
+  const DEFAULT_PROPOSALS: Proposal[] = [];
 
   const fetchProposals = async () => {
     setLoading(true);
@@ -129,7 +51,7 @@ export default function ProposalsPage() {
       } catch {}
 
       if (data && data.length > 0) {
-        setProposals(data);
+        setProposals(data || []);
       } else {
         setProposals(DEFAULT_PROPOSALS);
       }

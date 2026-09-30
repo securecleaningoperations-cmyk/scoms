@@ -243,7 +243,7 @@ export function Modal({ open, onClose, title, description, children, footer, siz
   return (
     <div className="overlay-backdrop animate-fade-in" onClick={onClose} role="dialog" aria-modal="true" aria-label={title}>
       <div
-        className={clsx("bg-surface rounded-xl shadow-overlay border border-border w-full flex flex-col max-h-[90vh] animate-scale-in", sizeClass)}
+        className={clsx("bg-white/95 dark:bg-slate-900/95 backdrop-blur-2xl rounded-xl shadow-[0_0_50px_rgba(0,0,0,0.15)] border border-border w-full flex flex-col max-h-[90vh] animate-scale-in", sizeClass)}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}

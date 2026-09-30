@@ -64,13 +64,13 @@ export default function LeadsPage() {
         const res = await fetch("/api/leads");
         const json = await res.json();
         if (json.data) {
-          setLeads(json.data);
+          setLeads(json.data || []);
           setLoading(false);
           return;
         }
       } catch {}
       const { data } = await supabase.from("leads").select("*").order("created_at", { ascending: false });
-      if (data) setLeads(data);
+      if (data) setLeads(data || []);
     } catch (err) {
       console.error("Error fetching leads:", err);
     } finally {
@@ -106,7 +106,7 @@ export default function LeadsPage() {
       });
       const json = await res.json();
       if (json.success && json.data) {
-        setJevAnalysis(json.data);
+        setJevAnalysis(json.data || []);
       }
     } catch (err) {
       console.error("Jev Lead Analysis error:", err);

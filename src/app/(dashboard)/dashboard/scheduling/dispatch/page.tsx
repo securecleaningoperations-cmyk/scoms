@@ -37,7 +37,7 @@ export default function DispatchPage() {
         supabase.from("users").select("id, first_name, last_name, email, role"),
       ]);
 
-      if (jobsRes.data) setJobs(jobsRes.data);
+      if (jobsRes.data) setJobs(jobsRes.data || []);
       if (empRes.data) {
         // Filter or map employees
         const validEmps = empRes.data.map((u: any) => ({

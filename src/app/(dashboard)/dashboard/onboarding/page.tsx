@@ -23,7 +23,7 @@ export default function OnboardingCenter() {
       const res = await fetch('/api/hr/employees');
       const json = await res.json();
       if (json.data) {
-        setEmployees(json.data);
+        setEmployees(json.data || []);
       }
     } catch {
       // Ignore

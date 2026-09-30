@@ -28,7 +28,7 @@ export default function SettingsPage() {
     setLoading(true);
     try {
       const data = await fetchSettings();
-      setSettings(data);
+      setSettings(data || []);
       
       // Initialize form state
       const initialForm: Record<string, string> = {};

@@ -77,10 +77,10 @@ export async function POST(request: NextRequest) {
 
     const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Say voice="alice">Thank you for calling Secure Cleaning Operations. ${callerName ? `Welcome back, ${callerName}.` : ''} Please hold while we connect you.</Say>
-  <Pause length="1"/>
-  <Say voice="alice">Your call is being recorded for quality and training purposes.</Say>
-  <Record transcribe="true" transcribeCallback="/api/twilio/transcript?call_id=${callRecord?.id ?? ''}" maxLength="3600" />
+  <Gather input="speech" action="/api/twilio/inbound/speech?call_id=${callRecord?.id ?? ''}" timeout="4" speechTimeout="auto">
+    <Say voice="Polly.Joanna-Neural">Thank you for calling Secure Cleaning Operations Inc. ${callerName !== 'caller' ? `Welcome back, ${callerName}. ` : ''}Our office hours are Monday through Friday from 10:00 AM to 5:30 PM. How may I assist you today?</Say>
+  </Gather>
+  <Say voice="Polly.Joanna-Neural">We didn't receive any input. Goodbye!</Say>
 </Response>`;
 
     return new NextResponse(twiml, {

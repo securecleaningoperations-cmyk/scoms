@@ -5,25 +5,24 @@
    ======================================================================== */
 
 @theme {
-  /* ── Core Palette ────────────────────────────────────────────────────── */
-  --color-bg-primary: #f8f9fb;
-  --color-bg-secondary: #ffffff;
-  --color-bg-elevated: #ffffff;
-  --color-bg-inset: #f1f3f7;
-  --color-bg-overlay: rgba(15, 23, 42, 0.5);
+  /* ── Core Palette (Glassmorphism) ─────────────────────────────────────── */
+  --color-bg-primary: #e0e7ff;
+  --color-bg-secondary: rgba(255, 255, 255, 0.6);
+  --color-bg-elevated: rgba(255, 255, 255, 0.75);
+  --color-bg-inset: rgba(255, 255, 255, 0.4);
+  --color-bg-overlay: rgba(15, 23, 42, 0.2);
 
-  --color-surface: #ffffff;
-  --color-surface-hover: #f8f9fb;
-  --color-surface-active: #f1f3f7;
-  --color-surface-selected: #eff6ff;
+  --color-surface: rgba(255, 255, 255, 0.75);
+  --color-surface-hover: rgba(255, 255, 255, 0.9);
+  --color-surface-active: rgba(255, 255, 255, 0.5);
+  --color-surface-selected: rgba(239, 246, 255, 0.8);
 
   /* ── Borders ─────────────────────────────────────────────────────────── */
-  --color-border: #e2e8f0;
-  --color-border-light: #f1f5f9;
-  --color-border-strong: #cbd5e1;
-  --color-border-focus: #3b82f6;
+  --color-border: rgba(255, 255, 255, 0.6);
+  --color-border-light: rgba(255, 255, 255, 0.3);
+  --color-border-strong: rgba(255, 255, 255, 1);
+  --color-border-focus: #4f46e5;
 
-  /* ── Text ─────────────────────────────────────────────────────────────── */
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #94a3b8;
@@ -129,7 +128,8 @@
 /* ── Base ────────────────────────────────────────────────────────────────── */
 
 body {
-  background-color: var(--color-bg-primary);
+  background: var(--color-bg-gradient);
+  background-attachment: fixed;
   color: var(--color-text-primary);
   font-family: var(--font-sans);
   font-size: var(--text-body);
@@ -159,16 +159,20 @@ body {
 
 .scoms-panel {
   background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
 }
 
 .scoms-panel-flush {
   background: var(--color-surface);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: var(--shadow-sm);
   overflow: hidden;
 }
 
@@ -244,6 +248,46 @@ body {
 .bg-paper { background-color: #ffffff !important; }
 .text-ink-navy { color: #0f172a !important; }
 .text-slate-gray { color: #475569 !important; }
+
+.bg-bg-gradient {
+  background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 50%, #f3e8ff 100%);
+}
+/* ── Buttons (Uniform & Glassmorphism) ────────────────────────────────── */
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-300 ease-out border focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm active:scale-[0.98];
+  }
+  
+  .btn-sm {
+    @apply px-3 py-1.5 text-xs;
+  }
+  
+  .btn-md {
+    @apply px-4 py-2 text-sm;
+  }
+
+  .btn-lg {
+    @apply px-5 py-2.5 text-base;
+  }
+
+  .btn-primary {
+    @apply bg-blue-600/90 hover:bg-blue-600 text-white border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md;
+  }
+
+  .btn-secondary {
+    @apply bg-surface hover:bg-surface-hover text-text-primary border-border hover:border-border-strong backdrop-blur-md;
+  }
+
+  .btn-danger {
+    @apply bg-rose-500/90 hover:bg-rose-500 text-white border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)] hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] backdrop-blur-md;
+  }
+
+  .btn-ghost {
+    @apply bg-transparent hover:bg-surface-hover text-text-primary border-transparent shadow-none hover:shadow-sm;
+  }
+}
+
 .text-mist-gray { color: #94a3b8 !important; }
 .text-signal-blue { color: #2563eb !important; }
 .bg-signal-blue { background-color: #2563eb !important; }

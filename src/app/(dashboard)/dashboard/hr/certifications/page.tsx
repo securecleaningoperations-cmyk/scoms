@@ -28,7 +28,7 @@ export default function CertificationsPage() {
     try {
       const res = await fetch('/api/hr/employees');
       const json = await res.json();
-      if (json.data) setEmployees(json.data);
+      if (json.data) setEmployees(json.data || []);
     } catch {
       // Ignore
     }
@@ -40,7 +40,7 @@ export default function CertificationsPage() {
       const res = await fetch('/api/hr/certifications');
       const json = await res.json();
       const data = json.data || [];
-      setCertifications(data);
+      setCertifications(data || []);
 
       const now = new Date().getTime();
       let valid = 0;

@@ -22,7 +22,7 @@ export default function PayrollPage() {
   const fetchRuns = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('payroll_runs').select('*').order('created_at', { ascending: false });
-    if (!error && data) setRuns(data);
+    if (!error && data) setRuns(data || []);
     else setRuns([]);
     setLoading(false);
   };

@@ -71,7 +71,7 @@ export default function KnowledgeBasePage() {
       if (res.ok) {
         const json = await res.json();
         const data = json.data || [];
-        setEntries(data);
+        setEntries(data || []);
         // Auto-select first item if current selection is invalid or null
         setSelected((prev: any) => {
           if (prev && data.some((d: any) => d.id === prev.id)) {

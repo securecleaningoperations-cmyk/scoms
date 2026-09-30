@@ -45,7 +45,7 @@ export default function InvoicesPage() {
 
   const fetchClients = useCallback(async () => {
     const { data } = await supabase.from("clients").select("id, name").order("name");
-    if (data) setClients(data);
+    if (data) setClients(data || []);
   }, []);
 
   const fetchInvoices = useCallback(async () => {

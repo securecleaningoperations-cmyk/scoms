@@ -49,7 +49,7 @@ export default function CustomerPage() {
     setLoading(true);
     try {
       const data = await fetchCustomerMetrics();
-      setMetrics(data);
+      setMetrics(data || []);
     } catch (err) {
       console.error("Failed to load customer metrics:", err);
     } finally {

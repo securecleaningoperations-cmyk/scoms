@@ -85,7 +85,7 @@ export default function IncidentsPage() {
       if (res.ok) {
         const json = await res.json();
         if (json.data && Array.isArray(json.data)) {
-          setIncidents(json.data);
+          setIncidents(json.data || []);
           setLoading(false);
           return;
         }

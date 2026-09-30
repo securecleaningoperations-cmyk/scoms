@@ -89,14 +89,14 @@ export default function JobsPage() {
         if (c.data) clientsData = c.data;
       }
 
-      setJobs(jobsData);
-      setClients(clientsData);
+      setJobs(jobsData || []);
+      setClients(clientsData || []);
 
       // Employees via HR API
       try {
         const empRes = await fetch("/api/hr/employees");
         const empJson = await empRes.json();
-        if (empJson.data) setEmployees(empJson.data);
+        if (empJson.data) setEmployees(empJson.data || []);
       } catch {}
     } catch (err) {
       console.error("Error fetching jobs:", err);

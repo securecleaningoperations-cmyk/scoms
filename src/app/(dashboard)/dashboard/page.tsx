@@ -32,19 +32,21 @@ export default function DashboardPage() {
   const { canViewFinance, canViewHR, role } = usePermissions();
   const [loading, setLoading] = useState(true);
   const [metrics, setMetrics] = useState<DashboardMetrics>({
-    activeJobs: 14,
-    openIssues: 2,
-    healthScore: 98,
-    activeEmployees: 24,
-    openReqs: 3,
-    pendingTrainings: 5,
-    revenue: 482500,
-    expenses: 289800,
-    netProfit: 192700,
-    activeClients: 18,
-    newLeads: 7,
-    openCapa: 2,
+    activeJobs: 0,
+    openIssues: 0,
+    healthScore: 0,
+    activeEmployees: 0,
+    openReqs: 0,
+    pendingTrainings: 0,
+    revenue: 0,
+    expenses: 0,
+    netProfit: 0,
+    activeClients: 0,
+    newLeads: 0,
+    openCapa: 0,
   });
+
+  const [liveJobs, setLiveJobs] = useState<any[]>([]);
 
   useEffect(() => {
     const fetchMetrics = async () => {
@@ -61,6 +63,7 @@ export default function DashboardPage() {
           { data: ledgerData },
           { data: qaData },
           { count: issuesCount },
+          { data: liveJobsData },
         ] = await Promise.all([
           supabase.from("employees").select("*", { count: "exact", head: true }).eq("status", "active"),
           supabase.from("capa_actions").select("*", { count: "exact", head: true }).in("status", ["open", "in_progress"]),
@@ -72,6 +75,7 @@ export default function DashboardPage() {
           supabase.from("ledger").select("type, amount"),
           supabase.from("qa_inspections").select("score"),
           supabase.from("incidents").select("*", { count: "exact", head: true }),
+          supabase.from("jobs").select("*, clients(company_name), employees(first_name, last_name)").order('scheduled_date', { ascending: false }).limit(5),
         ]);
 
         let rev = 482500, exp = 289800;
@@ -101,6 +105,11 @@ export default function DashboardPage() {
           newLeads: (leadsCount && leadsCount > 0) ? leadsCount : 6,
           openCapa: capaCount || 1,
         });
+
+        if (liveJobsData) {
+          setLiveJobs(liveJobsData);
+        }
+
       } catch (err) {
         console.error("Dashboard metrics error:", err);
       } finally {
@@ -119,52 +128,11 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-[1400px] mx-auto space-y-6 font-sans pb-24">
-      {/* ── Super Admin / Owner Command Banner ──────────────────────── */}
-      <div className="bg-gradient-to-r from-slate-900 via-blue-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
-        <div className="absolute right-0 top-0 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20"></div>
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Super Admin & Executive Command Center
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> All Hubs Operational
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              Welcome back, {user?.firstName || "Executive Owner"}
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              SCOMS Enterprise Platform v4.0 • Complete consolidated operations for Cleanrooms, Healthcare Facilities, and Commercial Hubs.
-            </p>
-          </div>
 
-          {/* Quick Role Switcher / Simulator for Platform Owner */}
-          <div className="bg-slate-800/80 backdrop-blur-md p-4 rounded-2xl border border-slate-700/80 space-y-2 flex-shrink-0">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="text-slate-400 font-medium">Viewing Platform As:</span>
-              <span className="font-bold text-blue-400 uppercase text-[11px]">{activeRole.replace(/_/g, ' ')}</span>
-            </div>
-            <select
-              value={activeRole}
-              onChange={(e) => setActiveRole(e.target.value as ScomsRole)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-blue-500"
-            >
-              <option value="super_admin">Super Admin / Platform Owner (All Access)</option>
-              <option value="operations_manager">Operations Manager (Dispatch & Field)</option>
-              <option value="supervisor">Field Supervisor (QA & Shifts)</option>
-              <option value="hr_manager">HR & Talent Manager</option>
-              <option value="finance_admin">Finance & Accounting Lead</option>
-              <option value="franchise_admin">Franchise Hub Operator</option>
-              <option value="field_employee">Technician / Cleaner View</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Top Core KPI Cards ────────────────────────────────────────── */}
+  // ── Executive Dashboard Layout ──────────────────────────
+  const renderSuperAdmin = () => (
+    <>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
@@ -175,7 +143,7 @@ export default function DashboardPage() {
           </div>
           <div className="mt-3">
             <p className="text-2xl sm:text-3xl font-bold text-slate-900">{formatCurrency(metrics.revenue)}</p>
-            <p className="text-xs font-semibold text-emerald-600 mt-1 flex items-center gap-1">
+            <p className="text-xs font-semibold text-blue-600 mt-1 flex items-center gap-1">
               <ArrowUpRight className="w-3.5 h-3.5" /> +8.4% vs last period
             </p>
           </div>
@@ -184,7 +152,7 @@ export default function DashboardPage() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">Active Work Orders</span>
-            <div className="p-2 rounded-xl bg-indigo-50 text-indigo-600">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
               <ClipboardList className="w-4 h-4" />
             </div>
           </div>
@@ -197,26 +165,26 @@ export default function DashboardPage() {
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">Quality & QA Compliance</span>
-            <div className="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
               <ShieldCheck className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <p className="text-2xl sm:text-3xl font-bold text-slate-900">{metrics.healthScore}%</p>
-            <p className="text-xs font-semibold text-emerald-600 mt-1">Exceeds 90% ISO standard</p>
+            <p className="text-xs font-semibold text-blue-600 mt-1">Exceeds 90% ISO standard</p>
           </div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-500">Net Operating Margin</span>
-            <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
+            <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
               <TrendingUp className="w-4 h-4" />
             </div>
           </div>
           <div className="mt-3">
             <p className="text-2xl sm:text-3xl font-bold text-slate-900">{formatCurrency(metrics.netProfit)}</p>
-            <p className="text-xs font-semibold text-purple-600 mt-1">~40% blended gross margin</p>
+            <p className="text-xs font-semibold text-blue-600 mt-1">~40% blended gross margin</p>
           </div>
         </div>
       </div>
@@ -236,24 +204,21 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-3">
-            {[
-              { site: "Metro Surgical Tower - 4th Floor Sterile Core", scope: "Platinum Biohazard Decontamination", lead: "Marcus Vance", status: "In Progress", time: "Started 1h ago", badge: "bg-blue-50 text-blue-700 border-blue-200" },
-              { site: "Apex Logistics Tech Campus - Distribution Bay", scope: "Ride-On Floor Scrubbing & Sanitization", lead: "Robert Callahan", status: "Scheduled", time: "Shift starts 8:00 PM", badge: "bg-indigo-50 text-indigo-700 border-indigo-200" },
-              { site: "Dallas BioTech Core - Cleanroom Suite 2", scope: "ISO 14644 Protocol Terminal Wipe", lead: "Elena Morales", status: "Passed QA", time: "Score: 99.1%", badge: "bg-emerald-50 text-emerald-700 border-emerald-200" },
-              { site: "North Texas Freight Hub - Logistics Offices", scope: "Commercial Janitorial Scope", lead: "Derek Sterling", status: "In Progress", time: "Crew of 4 on site", badge: "bg-amber-50 text-amber-700 border-amber-200" },
-            ].map(job => (
-              <div key={job.site} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {liveJobs.length === 0 && !loading ? (
+              <div className="p-4 text-center text-slate-500 text-sm">No live operations active.</div>
+            ) : liveJobs.map(job => (
+              <div key={job.id} className="p-4 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/50 hover:bg-slate-50 transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
                     <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                    <span className="font-bold text-slate-900 text-xs sm:text-sm">{job.site}</span>
+                    <span className="font-bold text-slate-900 text-xs sm:text-sm">{job.clients?.company_name || 'Internal Facility'}</span>
                   </div>
-                  <p className="text-xs text-slate-600">{job.scope} • Lead: <strong>{job.lead}</strong></p>
+                  <p className="text-xs text-slate-600">{job.title} • Lead: <strong>{job.employees ? `${job.employees.first_name} ${job.employees.last_name}` : 'Unassigned'}</strong></p>
                 </div>
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-slate-500 font-medium">{job.time}</span>
-                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${job.badge}`}>
-                    {job.status}
+                  <span className="text-xs text-slate-500 font-medium">{new Date(job.scheduled_date || job.created_at).toLocaleDateString()}</span>
+                  <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border bg-blue-50 text-blue-700 border-blue-200`}>
+                    {job.status?.replace('_', ' ') || 'Scheduled'}
                   </span>
                 </div>
               </div>
@@ -306,6 +271,114 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
+    </>
+  );
+
+  const renderOperationsManager = () => (
+    <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <ClipboardList className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 mb-2">Operations Manager Dashboard</h2>
+      <p className="text-slate-500 text-sm mb-6">Manage field dispatches, scheduling, and view live active operations.</p>
+      <Link href="/dashboard/scheduling/dispatch" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+        Go to Live Dispatch <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+
+  const renderHRManager = () => (
+    <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <Users className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 mb-2">HR & Workforce Director Dashboard</h2>
+      <p className="text-slate-500 text-sm mb-6">Manage employee profiles, onboarding, open requisitions, and compliance training.</p>
+      <Link href="/dashboard/hr" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+        Manage Workforce <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+
+  const renderFinanceAdmin = () => (
+    <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <DollarSign className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 mb-2">Finance & Accounting Dashboard</h2>
+      <p className="text-slate-500 text-sm mb-6">Review the general ledger, client invoicing, and approve financial projections.</p>
+      <Link href="/dashboard/gl" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+        Open General Ledger <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+
+  const renderFieldEmployee = () => (
+    <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <Briefcase className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 mb-2">Field Crew Dashboard</h2>
+      <p className="text-slate-500 text-sm mb-6">View your assigned shifts, timecards, and task checklists.</p>
+      <Link href="/dashboard/jobs" className="inline-flex items-center justify-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition-colors">
+        My Work Orders <ArrowRight className="w-4 h-4" />
+      </Link>
+    </div>
+  );
+
+  const renderDefaultView = () => (
+    <div className="bg-white p-8 rounded-2xl border border-slate-200 text-center">
+      <Activity className="w-12 h-12 text-blue-600 mx-auto mb-4" />
+      <h2 className="text-xl font-bold text-slate-900 mb-2">Welcome to {activeRole.replace(/_/g, ' ')} Dashboard</h2>
+      <p className="text-slate-500 text-sm mb-6">Use the sidebar to navigate to your specific modules.</p>
+    </div>
+  );
+
+  return (
+    <div className="p-4 sm:p-8 max-w-[1400px] mx-auto space-y-6 font-sans pb-24">
+      {/* ── Super Admin / Owner Command Banner ──────────────────────── */}
+      <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
+
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                Command Center
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold">
+                <span className="w-2 h-2 rounded-full bg-blue-400"></span> All Hubs Operational
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
+              Welcome back, {user?.firstName || activeRole.replace(/_/g, ' ')}
+            </h1>
+            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              SCOMS Enterprise Platform v6.1 • Centralized operations for facility services.
+            </p>
+          </div>
+
+          {/* Quick Role Switcher / Simulator for Platform Owner */}
+          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-2 flex-shrink-0">
+            <div className="flex items-center justify-between gap-3 text-xs">
+              <span className="text-slate-400 font-medium">Viewing Platform As:</span>
+              <span className="font-bold text-blue-400 uppercase text-[11px]">{activeRole.replace(/_/g, ' ')}</span>
+            </div>
+            <select
+              value={activeRole}
+              onChange={(e) => setActiveRole(e.target.value as ScomsRole)}
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-blue-500"
+            >
+              <option value="super_admin">Super Admin / Platform Owner (All Access)</option>
+              <option value="operations_manager">Operations Manager (Dispatch & Field)</option>
+              <option value="supervisor">Field Supervisor (QA & Shifts)</option>
+              <option value="hr_manager">HR & Talent Manager</option>
+              <option value="finance_admin">Finance & Accounting Lead</option>
+              <option value="franchise_admin">Franchise Hub Operator</option>
+              <option value="field_employee">Technician / Cleaner View</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {activeRole === 'super_admin' && renderSuperAdmin()}
+      {activeRole === 'operations_manager' && renderOperationsManager()}
+      {activeRole === 'hr_manager' && renderHRManager()}
+      {activeRole === 'finance_admin' && renderFinanceAdmin()}
+      {activeRole === 'field_employee' && renderFieldEmployee()}
+      {['supervisor', 'franchise_admin', 'sales_manager', 'quality_manager'].includes(activeRole) && renderDefaultView()}
+      
     </div>
   );
 }

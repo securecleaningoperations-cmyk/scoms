@@ -34,7 +34,7 @@ export default function AssetsPage() {
         *,
         custodian:employees(id, users(first_name, last_name))
       `).order('created_at', { ascending: false });
-      if (!error && data) setAssets(data);
+      if (!error && data) setAssets(data || []);
       else setAssets([]);
     } else {
       const { data, error } = await supabase.from('asset_transfers').select(`
@@ -43,7 +43,7 @@ export default function AssetsPage() {
         sender:employees(id, users(first_name, last_name)),
         receiver:employees(id, users(first_name, last_name))
       `).order('transfer_time', { ascending: false });
-      if (!error && data) setTransfers(data);
+      if (!error && data) setTransfers(data || []);
       else setTransfers([]);
     }
     setLoading(false);

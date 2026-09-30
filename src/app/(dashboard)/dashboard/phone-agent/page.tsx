@@ -27,63 +27,7 @@ const STATUS_COLORS: Record<string, string> = {
   transferred: 'bg-purple-100 text-purple-700',
 };
 
-const SEED_SESSIONS = [
-  {
-    id: "sess-jev-01",
-    direction: "inbound",
-    from_number: "(512) 555-8910",
-    to_number: "(800) 555-SCOMS",
-    caller_type: "existing_customer",
-    status: "completed",
-    started_at: new Date(Date.now() - 1000 * 60 * 25).toISOString(),
-    duration_seconds: 142,
-    intent: "emergency_dispatch",
-    workflow: "emergency_dispatch",
-    ai_summary: "Critical Emergency HAZMAT: Chemical solvent spill reported in Cleanroom Lab 3. Dispatched On-Call HAZMAT Crew Lead.",
-    sentiment: "urgent",
-    escalated_to_human: true,
-    escalation_reason: "ISO Cleanroom Biohazard Protocol",
-    lead_created_id: null,
-    ticket_created_id: "TKT-BIO-89",
-    applicant_created_id: null,
-  },
-  {
-    id: "sess-jev-02",
-    direction: "inbound",
-    from_number: "(214) 555-4421",
-    to_number: "(800) 555-SCOMS",
-    caller_type: "new_customer",
-    status: "completed",
-    started_at: new Date(Date.now() - 1000 * 60 * 95).toISOString(),
-    duration_seconds: 195,
-    intent: "sales_lead",
-    workflow: "sales_lead",
-    ai_summary: "Commercial Janitorial Inquiry: 45,000 sq ft logistics facility. Auto-scheduled walkthrough for Thursday 10:00 AM.",
-    sentiment: "positive",
-    escalated_to_human: false,
-    lead_created_id: "LD-9921",
-    ticket_created_id: null,
-    applicant_created_id: null,
-  },
-  {
-    id: "sess-jev-03",
-    direction: "inbound",
-    from_number: "(469) 555-0322",
-    to_number: "(800) 555-SCOMS",
-    caller_type: "employee",
-    status: "completed",
-    started_at: new Date(Date.now() - 1000 * 60 * 360).toISOString(),
-    duration_seconds: 64,
-    intent: "employee_support",
-    workflow: "employee_support",
-    ai_summary: "HR Attendance: Technician Maria Santos logged absence for evening shift. Reserve technician reassigned.",
-    sentiment: "neutral",
-    escalated_to_human: false,
-    lead_created_id: null,
-    ticket_created_id: null,
-    applicant_created_id: null,
-  }
-];
+
 
 export default function PhoneAgentPage() {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -112,7 +56,7 @@ export default function PhoneAgentPage() {
         getCallStats().catch(e => { console.warn(e); return null; })
       ]);
       
-      const combinedSessions = sess && sess.length > 0 ? sess : SEED_SESSIONS;
+      const combinedSessions = sess || [];
       setSessions(combinedSessions);
       setStats(st || {
         total: combinedSessions.length,
@@ -125,7 +69,7 @@ export default function PhoneAgentPage() {
       }
     } catch (e: any) {
       console.warn("Error fetching AI Call data:", e);
-      setSessions(SEED_SESSIONS);
+      setSessions([]);
     } finally {
       setLoading(false);
     }
@@ -143,16 +87,7 @@ export default function PhoneAgentPage() {
       ]);
       setSessionDetail(detail || session);
       
-      if (tx && tx.length > 0) {
-        setTranscripts(tx);
-      } else {
-        // Fallback realistic transcript snippet based on session
-        setTranscripts([
-          { id: "tx-1", speaker: "ai", message: "Thank you for calling Secure Cleaning Operations Inc. How may I assist you today?", timestamp: session.started_at },
-          { id: "tx-2", speaker: "customer", message: session.ai_summary || "Inbound caller request regarding facility operations.", timestamp: session.started_at },
-          { id: "tx-3", speaker: "ai", message: `Understood. I have logged this under ${session.intent || 'workflow routing'}. A confirmation notification has been processed.`, timestamp: session.started_at }
-        ]);
-      }
+      setTranscripts(tx || []);
     } catch (e: any) {
       console.warn("Call detail fallback:", e);
       setSessionDetail(session);

@@ -14,44 +14,7 @@ export default function ContractsPage() {
 
   useEffect(() => { fetchContracts(); }, []);
 
-  const DEFAULT_CONTRACTS = [
-    {
-      id: 'ctr-001',
-      contract_number: 'CTR-TX8842',
-      title: 'DFW Commercial Tech Hub - Annual Facilities Cleaning',
-      type: 'cleaning_contract',
-      status: 'active',
-      start_date: '2024-01-01',
-      end_date: '2025-01-01',
-      value: 145000,
-      billing_frequency: 'monthly',
-      clients: { name: 'Apex Logistics & Tech Campus' }
-    },
-    {
-      id: 'ctr-002',
-      contract_number: 'CTR-MD9910',
-      title: 'Metro Surgical & Medical Tower Sanitization MSA',
-      type: 'master_services_agreement',
-      status: 'active',
-      start_date: '2024-02-15',
-      end_date: '2025-02-15',
-      value: 198000,
-      billing_frequency: 'monthly',
-      clients: { name: 'Metro Healthcare Network' }
-    },
-    {
-      id: 'ctr-003',
-      contract_number: 'CTR-NT5521',
-      title: 'North Texas Regional Distribution Center Deep Clean',
-      type: 'statement_of_work',
-      status: 'pending_signature',
-      start_date: '2024-04-01',
-      end_date: '2025-04-01',
-      value: 92000,
-      billing_frequency: 'bi_weekly',
-      clients: { name: 'North Texas Freight & Logistics' }
-    }
-  ];
+  const DEFAULT_CONTRACTS: any[] = [];
 
   const fetchContracts = async () => {
     setLoading(true);

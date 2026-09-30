@@ -28,7 +28,7 @@ export default function GeneralLedgerPage() {
         .from("ledger")
         .select("*")
         .order("recorded_at", { ascending: false });
-      if (data) setEntries(data);
+      if (data) setEntries(data || []);
     } catch (err) {
       console.error("Error fetching ledger:", err);
     } finally {

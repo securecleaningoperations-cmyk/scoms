@@ -47,7 +47,7 @@ export default function ClientsPage() {
         const res = await fetch("/api/clients");
         const json = await res.json();
         if (json.data) {
-          setClients(json.data);
+          setClients(json.data || []);
           setLoading(false);
           return;
         }
@@ -57,7 +57,7 @@ export default function ClientsPage() {
         .from("clients")
         .select("*")
         .order("created_at", { ascending: false });
-      if (data) setClients(data);
+      if (data) setClients(data || []);
     } catch (err) {
       console.error("Error fetching clients:", err);
     } finally {

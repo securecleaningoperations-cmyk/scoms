@@ -39,13 +39,7 @@ interface ChecklistItem {
   points: number;
 }
 
-const DEFAULT_CHECKLIST: ChecklistItem[] = [
-  { id: "c1", label: "Cleanroom HEPA filtration airflow within ISO Class spec", checked: true, points: 20 },
-  { id: "c2", label: "Touchpoint electrostatic disinfection (ATP RLU < 30)", checked: true, points: 20 },
-  { id: "c3", label: "Hazardous waste and sharps disposal compliance verified", checked: true, points: 20 },
-  { id: "c4", label: "PPE, eye wash stations, and SDS binders verified", checked: true, points: 20 },
-  { id: "c5", label: "Floor micro-scrubbing and static dissipative polish check", checked: false, points: 20 },
-];
+const DEFAULT_CHECKLIST: ChecklistItem[] = [];
 
 export default function QualityPage() {
   const [inspections, setInspections] = useState<Inspection[]>([]);

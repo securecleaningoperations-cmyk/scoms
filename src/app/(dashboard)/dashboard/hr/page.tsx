@@ -57,7 +57,7 @@ export default function HRManagementPage() {
       const res = await fetch("/api/hr/employees");
       const json = await res.json();
       if (json.data) {
-        setEmployees(json.data);
+        setEmployees(json.data || []);
       } else if (json.error) {
         setError(json.error);
       }

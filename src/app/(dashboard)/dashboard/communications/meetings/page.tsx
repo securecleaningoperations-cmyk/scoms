@@ -7,6 +7,7 @@ import {
   Users, CheckCircle2, Copy, Check, Sparkles, AlertCircle, Phone, ArrowLeft, Radio,
   Edit3, Trash2
 } from "lucide-react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { JitsiMeetViewer } from "@/components/JitsiMeetViewer";
 
 interface MeetingRecord {
@@ -21,63 +22,7 @@ interface MeetingRecord {
   purpose: string;
 }
 
-const DEFAULT_MEETINGS: MeetingRecord[] = [
-  {
-    id: 'meet-all-hands',
-    title: 'SCOMS Company-Wide All-Hands Hall (Open to All Roles)',
-    scheduled_at: new Date().toISOString(),
-    meet_url: 'SCOMS-All-Hands-Company-Wide',
-    type: 'meeting',
-    status: 'live',
-    host: 'Corporate Leadership & Executive Operations',
-    participants: 'Super Admins, Field Cleaners, Franchisees, & Clients',
-    purpose: 'Permanent company-wide virtual auditorium for all-hands operations, shift sync, and training'
-  },
-  {
-    id: 'meet-101',
-    title: 'Commercial Site Walkthrough — Apex Logistics Center',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 30).toISOString(),
-    meet_url: 'SCOMS-Apex-Logistics-Walkthrough',
-    type: 'meeting',
-    status: 'live',
-    host: 'Marcus Vance (Operations Director)',
-    participants: 'David Chen (Facility Director, Apex)',
-    purpose: 'Virtual Site Walkthrough & High-Touch Disinfection Scope Review'
-  },
-  {
-    id: 'meet-102',
-    title: 'Pre-Shift Operations Briefing & Safety Alignment',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 180).toISOString(),
-    meet_url: 'SCOMS-Evening-Shift-Briefing',
-    type: 'meeting',
-    status: 'scheduled',
-    host: 'Sarah Jenkins (Field Supervisor)',
-    participants: 'Evening Operations Crew A & B (8 cleaners)',
-    purpose: 'OSHA PPE Verification & Chemical Dilution Protocols'
-  },
-  {
-    id: 'meet-103',
-    title: 'Gold Tier Proposal Presentation — St. Jude Clinic',
-    scheduled_at: new Date(Date.now() + 1000 * 60 * 60 * 24).toISOString(),
-    meet_url: 'SCOMS-StJude-Proposal-Review',
-    type: 'meeting',
-    status: 'scheduled',
-    host: 'Elena Rostova (Senior Estimator)',
-    participants: 'Dr. Kimberly Adams (Practice Manager)',
-    purpose: 'Triple-tier proposal breakdown & healthcare compliance checklist'
-  },
-  {
-    id: 'meet-104',
-    title: 'Monthly Franchise Governance & Quality Audit',
-    scheduled_at: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    meet_url: 'SCOMS-Franchise-Review-Q3',
-    type: 'meeting',
-    status: 'completed',
-    host: 'Executive Franchise Director',
-    participants: 'Dallas, Phoenix, and Atlanta Franchise Operators',
-    purpose: 'CAPA quality review, inspection scores, and royalty reconciliation'
-  }
-];
+
 
 export default function MeetingsPage() {
   const [meetings, setMeetings] = useState<MeetingRecord[]>([]);
@@ -98,9 +43,19 @@ export default function MeetingsPage() {
     participants: 'Commercial Client / Staff'
   });
 
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
   useEffect(() => {
     fetchMeetings();
-  }, []);
+    const joinParam = searchParams.get('join');
+    if (joinParam) {
+      setActiveMeeting(joinParam);
+      setActiveMeetingTitle('SCOMS Meeting Session');
+      // Clean up URL
+      router.replace('/dashboard/communications/meetings', { scroll: false });
+    }
+  }, [searchParams, router]);
 
   const fetchMeetings = async () => {
     setLoading(true);
@@ -123,12 +78,12 @@ export default function MeetingsPage() {
           participants: d.participants || 'Client / Operations',
           purpose: d.content || 'Facility Operations & Walkthrough'
         }));
-        setMeetings([...DEFAULT_MEETINGS.slice(0, 1), ...mapped, ...DEFAULT_MEETINGS.slice(1)]);
+        setMeetings(mapped);
       } else {
-        setMeetings(DEFAULT_MEETINGS);
+        setMeetings([]);
       }
     } catch {
-      setMeetings(DEFAULT_MEETINGS);
+      setMeetings([]);
     } finally {
       setLoading(false);
     }

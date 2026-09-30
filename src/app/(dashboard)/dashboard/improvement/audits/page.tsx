@@ -16,7 +16,7 @@ export default function AuditsPage() {
   const fetchAudits = async () => {
     setLoading(true);
     const { data, error } = await supabase.from('audits').select('*').order('created_at', { ascending: false });
-    if (!error && data) setAudits(data);
+    if (!error && data) setAudits(data || []);
     else setAudits([]);
     setLoading(false);
   };

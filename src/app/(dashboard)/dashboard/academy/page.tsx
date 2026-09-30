@@ -136,7 +136,7 @@ export default function AcademyPage() {
       const allAssignments = assignData;
       setCourses(allCourses);
       setAssignments(allAssignments);
-      setEmployees(empData);
+      setEmployees(empData || []);
       const overdue = allAssignments.filter((a: any) =>
         a.status === 'assigned' && a.due_date && new Date(a.due_date) < new Date()
       ).length;

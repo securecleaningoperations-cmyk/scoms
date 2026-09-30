@@ -77,7 +77,7 @@ export default function EmployeeTrainingPage() {
             .order("completed_at", { ascending: false });
 
           if (data && data.length > 0) {
-            setTrainings(data);
+            setTrainings(data || []);
           } else {
             setTrainings([...INITIAL_PENDING_TRAININGS, ...INITIAL_COMPLETED_TRAININGS]);
           }

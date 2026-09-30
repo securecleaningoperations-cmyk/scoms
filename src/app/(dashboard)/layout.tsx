@@ -671,7 +671,8 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   if (!isAuthenticated) return null;
 
   return (
-    <div className="flex h-screen overflow-hidden bg-bg-primary">
+    <div className="flex h-screen overflow-hidden bg-transparent">
+      <div className="flex w-full h-full shadow-overlay overflow-hidden bg-surface/60 backdrop-blur-3xl border border-border">
       {/* Desktop Sidebar */}
       <Sidebar />
 
@@ -751,6 +752,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         initialType={createModalType}
         onClose={() => setCreateModalOpen(false)}
       />
+      </div>
     </div>
   );
 }

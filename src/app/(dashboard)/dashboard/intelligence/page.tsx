@@ -162,7 +162,7 @@ export default function IntelligenceDashboard() {
           transcriptSnippet: `Model: ${jev.model} • Urgency: ${jev.urgencyLabel} (${jev.urgencyRating}/4). ${jev.requiresHumanOverride ? 'Supervisory escalation triggered.' : 'Autonomous execution completed.'}`
         };
 
-        setSimResult(scenarioData);
+        setSimResult(scenarioData || []);
 
         // Add to call list
         const newCallRecord: CallRecord = {
