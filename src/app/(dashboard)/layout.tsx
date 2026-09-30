@@ -328,13 +328,13 @@ function NotificationBell() {
     <div className="relative">
       <button
         onClick={() => setOpen(!open)}
-        className="relative p-2 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
+        className="relative p-2 rounded-lg text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors"
         aria-label="Notifications"
       >
-        <Bell className="w-4 h-4" />
+        <Bell className="w-4.5 h-4.5" />
         {unreadCount > 0 && (
-          <span className="absolute 0 top-1 right-1 w-4 h-4 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center ring-2 ring-white">
-            {unreadCount}
+          <span className="absolute top-0.5 right-0.5 min-w-[16px] h-4 bg-red-600 text-white text-[9px] font-extrabold rounded-full flex items-center justify-center px-1 ring-2 ring-white">
+            {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
@@ -342,91 +342,94 @@ function NotificationBell() {
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
-          <div className="absolute right-0 top-full mt-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl z-50 w-84 sm:w-96 overflow-hidden animate-in fade-in zoom-in-95 duration-150 ring-1 ring-slate-900/10">
+          <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-2xl shadow-2xl z-50 w-[340px] sm:w-[380px] overflow-hidden ring-1 ring-slate-900/5">
             {/* Header */}
-            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-800/50">
-              <div className="flex items-center gap-2">
-                <Bell className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-800 dark:text-white">Operational Notifications</h3>
-                {unreadCount > 0 && (
-                  <span className="bg-blue-100 text-blue-700 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                    {unreadCount} new
-                  </span>
-                )}
+            <div className="px-4 py-3 bg-white border-b border-slate-100 flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-7 h-7 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Bell className="w-3.5 h-3.5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-bold text-slate-900">Notifications</h3>
+                  {unreadCount > 0 && (
+                    <p className="text-[10px] text-blue-600 font-semibold">{unreadCount} unread</p>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-2">
                 {unreadCount > 0 && (
-                  <button 
-                    onClick={markAllRead} 
-                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 hover:underline"
+                  <button
+                    onClick={markAllRead}
+                    className="text-xs text-blue-600 hover:text-blue-800 font-semibold flex items-center gap-1 px-2 py-1 rounded-lg hover:bg-blue-50 transition"
                   >
-                    <CheckCheck className="w-3.5 h-3.5" /> Mark all read
+                    <CheckCheck className="w-3.5 h-3.5" />
+                    <span>Mark all read</span>
                   </button>
                 )}
-                <button 
-                  onClick={() => setOpen(false)} 
-                  className="p-1 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100"
+                <button
+                  onClick={() => setOpen(false)}
+                  className="p-1.5 text-slate-400 hover:text-slate-700 rounded-lg hover:bg-slate-100 transition"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            {/* Filter Sub-Bar */}
-            <div className="flex items-center gap-1 px-4 py-1.5 bg-slate-50 dark:bg-slate-800/30 border-b border-slate-100 dark:border-slate-800 text-xs">
+            {/* Filter */}
+            <div className="flex items-center gap-1 px-3 py-2 bg-slate-50 border-b border-slate-100 text-xs">
               <button
                 onClick={() => setFilter("all")}
-                className={`px-3 py-1 rounded-lg font-semibold transition-colors ${filter === "all" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs font-bold" : "text-slate-500 hover:text-slate-800"}`}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === "all" ? "bg-white text-slate-900 shadow-sm border border-slate-200 font-bold" : "text-slate-500 hover:text-slate-800"}`}
               >
                 All ({notifications.length})
               </button>
               <button
                 onClick={() => setFilter("unread")}
-                className={`px-3 py-1 rounded-lg font-semibold transition-colors ${filter === "unread" ? "bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-2xs font-bold" : "text-slate-500 hover:text-slate-800"}`}
+                className={`px-3 py-1.5 rounded-lg font-semibold transition ${filter === "unread" ? "bg-white text-slate-900 shadow-sm border border-slate-200 font-bold" : "text-slate-500 hover:text-slate-800"}`}
               >
                 Unread ({unreadCount})
               </button>
             </div>
 
             {/* List */}
-            <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
+            <div className="max-h-[340px] overflow-y-auto divide-y divide-slate-100">
               {filtered.length === 0 ? (
-                <div className="py-12 text-center text-slate-400 text-sm">
-                  <Bell className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
-                  <p className="font-medium text-xs">No notifications in this view</p>
+                <div className="py-12 text-center">
+                  <Bell className="w-8 h-8 mx-auto mb-2 text-slate-200" />
+                  <p className="text-xs text-slate-400 font-medium">No notifications here</p>
                 </div>
               ) : (
                 filtered.map(n => (
                   <div
                     key={n.id}
                     onClick={() => markItemRead(n.id, n.href)}
-                    className={`px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors ${!n.read ? 'bg-blue-50/30 dark:bg-blue-900/10' : ''}`}
+                    className={`px-4 py-3 flex items-start gap-3 cursor-pointer hover:bg-slate-50 transition-colors ${!n.read ? "bg-blue-50/40" : ""}`}
                   >
-                    <div className={`p-2 rounded-xl flex-shrink-0 mt-0.5 ${
-                      n.priority === 'urgent' ? 'bg-red-50 text-red-600 border border-red-100' :
-                      n.category === 'sales' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
-                      n.category === 'finance' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                      n.category === 'compliance' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                      'bg-slate-100 text-slate-700 border border-slate-200'
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
+                      n.priority === "urgent" ? "bg-red-100 text-red-700" :
+                      n.category === "sales" ? "bg-blue-100 text-blue-700" :
+                      n.category === "finance" ? "bg-emerald-100 text-emerald-700" :
+                      n.category === "compliance" ? "bg-amber-100 text-amber-700" :
+                      "bg-slate-100 text-slate-600"
                     }`}>
-                      {n.category === 'finance' ? <DollarSign className="w-3.5 h-3.5" /> :
-                       n.category === 'sales' ? <FileText className="w-3.5 h-3.5" /> :
-                       n.category === 'compliance' ? <ShieldCheck className="w-3.5 h-3.5" /> :
-                       <ClipboardList className="w-3.5 h-3.5" />}
+                      {n.category === "finance" ? <DollarSign className="w-4 h-4" /> :
+                       n.category === "sales" ? <FileText className="w-4 h-4" /> :
+                       n.category === "compliance" ? <ShieldCheck className="w-4 h-4" /> :
+                       <ClipboardList className="w-4 h-4" />}
                     </div>
 
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between gap-1">
-                        <p className={`text-xs ${!n.read ? 'font-bold text-slate-900 dark:text-white' : 'font-medium text-slate-600 dark:text-slate-300'} truncate`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <p className={`text-xs leading-snug ${!n.read ? "font-bold text-slate-900" : "font-medium text-slate-600"}`}>
                           {n.title}
                         </p>
-                        <span className="text-[10px] text-slate-400 flex-shrink-0">{n.time}</span>
+                        <span className="text-[10px] text-slate-400 shrink-0 whitespace-nowrap">{n.time}</span>
                       </div>
-                      <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
+                      <p className="text-xs text-slate-500 line-clamp-2 mt-0.5 leading-relaxed">{n.message}</p>
                     </div>
 
                     {!n.read && (
-                      <span className="w-2 h-2 rounded-full bg-blue-600 flex-shrink-0 mt-2" />
+                      <span className="w-2 h-2 rounded-full bg-blue-600 shrink-0 mt-2" />
                     )}
                   </div>
                 ))
@@ -434,15 +437,18 @@ function NotificationBell() {
             </div>
 
             {/* Footer */}
-            <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-xs">
-              <Link 
-                href="/dashboard/communications" 
+            <div className="px-4 py-2.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+              <Link
+                href="/dashboard/communications"
                 onClick={() => setOpen(false)}
-                className="text-blue-600 hover:text-blue-800 font-semibold"
+                className="text-xs text-blue-600 hover:text-blue-800 font-semibold hover:underline"
               >
-                Communications Log
+                View All Activity
               </Link>
-              <span className="text-slate-400 text-[11px]">Dispatch System Online</span>
+              <div className="flex items-center gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                <span className="text-[10px] text-slate-400 font-medium">System Online</span>
+              </div>
             </div>
           </div>
         </>

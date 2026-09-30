@@ -23,53 +23,7 @@ interface MeetingRecord {
   purpose: string;
 }
 
-// Resilient default meetings if database is offline or empty
-const DEFAULT_MEETINGS: MeetingRecord[] = [
-  {
-    id: 'meet-seed-1',
-    title: 'Commercial Site Walkthrough & Scope Review — Apex Logistics',
-    scheduled_at: new Date(Date.now() + 3600000 * 2).toISOString(),
-    meet_url: 'SCOMS-Apex-Logistics-Walkthrough',
-    type: 'meeting',
-    status: 'scheduled',
-    host: 'Marcus Vance (Field Lead)',
-    participants: 'David Chen (Facility Director), Operations Lead',
-    purpose: 'Review high-touch surface sanitization scope, cleanroom certification, and emergency callback protocol.'
-  },
-  {
-    id: 'meet-seed-2',
-    title: 'Pre-Shift Chemical Safety & Biohazard Standards Briefing',
-    scheduled_at: new Date(Date.now() - 1800000).toISOString(),
-    meet_url: 'SCOMS-Daily-Safety-Sync',
-    type: 'meeting',
-    status: 'live',
-    host: 'Elena Rostova (Compliance Inspector)',
-    participants: 'All Shift Technicians & Cleaning Crew Leads',
-    purpose: 'OSHA 1910 alignment, quaternary disinfectant contact times, and PPE compliance checklist.'
-  },
-  {
-    id: 'meet-seed-3',
-    title: 'Bi-Weekly Commercial Inspection Review — Metro Tech Center',
-    scheduled_at: new Date(Date.now() + 86400000).toISOString(),
-    meet_url: 'SCOMS-Metro-Tech-Inspection',
-    type: 'meeting',
-    status: 'scheduled',
-    host: 'Sarah Jenkins (Operations Manager)',
-    participants: 'Property Management Team & Lead Supervisor',
-    purpose: 'ATP surface swab results, floor scrub cycle schedule, and quarterly consumables audit.'
-  },
-  {
-    id: 'meet-seed-4',
-    title: 'Executive Platform & Operations Leadership Sync',
-    scheduled_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    meet_url: 'SCOMS-Executive-Leadership-Sync',
-    type: 'meeting',
-    status: 'completed',
-    host: 'David Vance (Super Admin)',
-    participants: 'Franchise Directors & Operations Heads',
-    purpose: 'Review Q1 SLA uptime, labor gross margins, and enterprise customer expansion roadmap.'
-  }
-];
+// No hardcoded fake meetings — only real Supabase data is shown
 
 // Helper: safe date formatting that NEVER throws RangeError
 function safeFormatDateTime(dateStr?: string | null): string {
@@ -280,12 +234,8 @@ function MeetingsComponent() {
       console.warn('Using local meetings data fallback:', err);
     }
 
-    if (loadedList.length === 0) {
-      loadedList = DEFAULT_MEETINGS;
-    }
-
     setMeetings(loadedList);
-    if (typeof window !== 'undefined') {
+    if (typeof window !== 'undefined' && loadedList.length > 0) {
       try {
         localStorage.setItem('scoms_meetings_cache', JSON.stringify(loadedList));
       } catch {}

@@ -1,12 +1,11 @@
-"use client";
+﻿"use client";
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import {
-  Shield, Eye, EyeOff, Building2, User, Users, Check,
-  ArrowRight, Sparkles, Lock, Mail, KeyRound, Radio, LogIn,
-  Briefcase, CheckCircle2, ChevronRight, AlertCircle
+  Shield, Eye, EyeOff, Building2, User,
+  ArrowRight, Lock, Mail, KeyRound, Briefcase, AlertCircle, ChevronRight
 } from "lucide-react";
 import Link from "next/link";
 import { useAuth, type UserProfile, type ScomsRole } from "@/lib/auth/AuthProvider";
@@ -20,8 +19,10 @@ interface RoleConfig {
   title: string;
   subtitle: string;
   icon: React.ComponentType<{ className?: string }>;
-  color: string;
-  activeBg: string;
+  accentColor: string;
+  tabActive: string;
+  tabInactive: string;
+  headerGradient: string;
   defaultEmail: string;
   defaultPass: string;
   username: string;
@@ -36,12 +37,14 @@ const ROLE_CONFIGS: Record<RoleTier, RoleConfig> = {
   super_admin: {
     id: "super_admin",
     tabLabel: "Super Admin",
-    badge: "Platform Master / Owner",
-    title: "Executive Super Admin Console",
-    subtitle: "Complete platform control, financial ledger, security RBAC & franchise hub governance.",
+    badge: "Platform Owner",
+    title: "Executive Super Admin",
+    subtitle: "Complete platform control, financial ledger, security RBAC and franchise hub governance.",
     icon: Shield,
-    color: "text-blue-600",
-    activeBg: "bg-blue-600 text-white shadow-md shadow-blue-900/20",
+    accentColor: "blue",
+    tabActive: "bg-blue-600 text-white shadow-lg shadow-blue-900/30",
+    tabInactive: "text-slate-400 hover:text-slate-200",
+    headerGradient: "from-blue-900 via-blue-800 to-indigo-900",
     defaultEmail: "admin@securecleaningoperations.com",
     defaultPass: "admin123",
     username: "@david.vance",
@@ -53,31 +56,35 @@ const ROLE_CONFIGS: Record<RoleTier, RoleConfig> = {
   },
   company_client: {
     id: "company_client",
-    tabLabel: "Company / Client",
+    tabLabel: "Client / Company",
     badge: "Facility Account",
     title: "Commercial Client Portal",
-    subtitle: "Facility service requests, walkthrough approvals, invoices & live inspection reports.",
+    subtitle: "Facility service requests, walkthrough approvals, invoices and live inspection reports.",
     icon: Building2,
-    color: "text-emerald-600",
-    activeBg: "bg-emerald-600 text-white shadow-md shadow-emerald-900/20",
+    accentColor: "emerald",
+    tabActive: "bg-emerald-600 text-white shadow-lg shadow-emerald-900/30",
+    tabInactive: "text-slate-400 hover:text-slate-200",
+    headerGradient: "from-emerald-900 via-teal-800 to-cyan-900",
     defaultEmail: "client@apexlogistics.com",
     defaultPass: "client123",
     username: "@apex.facility",
     employeeId: "CLI-8092",
-    name: "Apex Logistics Facilities",
+    name: "Apex Logistics",
     department: "Commercial Facility Operations",
     role: "client_admin",
     redirectUrl: "/portal/dashboard"
   },
   manager_supervisor: {
     id: "manager_supervisor",
-    tabLabel: "Manager & Supervisor",
+    tabLabel: "Manager",
     badge: "Field Operations Lead",
-    title: "Operations & Supervisor Dispatch",
-    subtitle: "Route scheduling, shift team dispatch, CAPA inspections & daily walkthrough logs.",
+    title: "Operations Manager",
+    subtitle: "Route scheduling, shift team dispatch, CAPA inspections and daily walkthrough logs.",
     icon: Briefcase,
-    color: "text-purple-600",
-    activeBg: "bg-purple-600 text-white shadow-md shadow-purple-900/20",
+    accentColor: "violet",
+    tabActive: "bg-violet-600 text-white shadow-lg shadow-violet-900/30",
+    tabInactive: "text-slate-400 hover:text-slate-200",
+    headerGradient: "from-violet-900 via-purple-800 to-indigo-900",
     defaultEmail: "ops.manager@securecleaningoperations.com",
     defaultPass: "manager123",
     username: "@marcus.v",
@@ -89,13 +96,15 @@ const ROLE_CONFIGS: Record<RoleTier, RoleConfig> = {
   },
   cleaner_field: {
     id: "cleaner_field",
-    tabLabel: "Cleaner / Field Crew",
+    tabLabel: "Field Crew",
     badge: "Cleaning Technician",
-    title: "Field Technician Mobile Console",
-    subtitle: "Mobile clock in/out, SDS chemical safety sheets, shift tasks & room sanitization checklist.",
+    title: "Field Technician Console",
+    subtitle: "Mobile clock in/out, SDS chemical safety sheets, shift tasks and room sanitization checklist.",
     icon: User,
-    color: "text-amber-600",
-    activeBg: "bg-amber-600 text-white shadow-md shadow-amber-900/20",
+    accentColor: "amber",
+    tabActive: "bg-amber-500 text-white shadow-lg shadow-amber-900/30",
+    tabInactive: "text-slate-400 hover:text-slate-200",
+    headerGradient: "from-amber-900 via-orange-800 to-red-900",
     defaultEmail: "cleaner.lead@securecleaningoperations.com",
     defaultPass: "cleaner123",
     username: "@carlos.tech",
@@ -107,340 +116,297 @@ const ROLE_CONFIGS: Record<RoleTier, RoleConfig> = {
   }
 };
 
+const ACCENT_RING: Record<string, string> = {
+  blue: "focus:ring-blue-500 focus:border-blue-500",
+  emerald: "focus:ring-emerald-500 focus:border-emerald-500",
+  violet: "focus:ring-violet-500 focus:border-violet-500",
+  amber: "focus:ring-amber-500 focus:border-amber-500",
+};
+const ACCENT_BTN: Record<string, string> = {
+  blue: "bg-blue-600 hover:bg-blue-500 shadow-blue-900/30",
+  emerald: "bg-emerald-600 hover:bg-emerald-500 shadow-emerald-900/30",
+  violet: "bg-violet-600 hover:bg-violet-500 shadow-violet-900/30",
+  amber: "bg-amber-500 hover:bg-amber-400 shadow-amber-900/30",
+};
+const ACCENT_DOT: Record<string, string> = {
+  blue: "bg-blue-500",
+  emerald: "bg-emerald-500",
+  violet: "bg-violet-500",
+  amber: "bg-amber-500",
+};
+const ACCENT_ICON_BG: Record<string, string> = {
+  blue: "bg-blue-500/20 text-blue-300",
+  emerald: "bg-emerald-500/20 text-emerald-300",
+  violet: "bg-violet-500/20 text-violet-300",
+  amber: "bg-amber-500/20 text-amber-300",
+};
+
 export default function LoginPage() {
   const router = useRouter();
   const { loginAsUser } = useAuth();
 
   const [activeTier, setActiveTier] = useState<RoleTier>("super_admin");
   const [email, setEmail] = useState(ROLE_CONFIGS.super_admin.defaultEmail);
-  const [password, setPassword] = useState(ROLE_CONFIGS.super_admin.defaultPass);
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const currentConfig = ROLE_CONFIGS[activeTier];
+  const ring = ACCENT_RING[currentConfig.accentColor];
+  const btn = ACCENT_BTN[currentConfig.accentColor];
+  const dot = ACCENT_DOT[currentConfig.accentColor];
+  const iconBg = ACCENT_ICON_BG[currentConfig.accentColor];
+  const TierIcon = currentConfig.icon;
 
   const handleTabChange = (tier: RoleTier) => {
     setActiveTier(tier);
     setError(null);
     setEmail(ROLE_CONFIGS[tier].defaultEmail);
-    setPassword(ROLE_CONFIGS[tier].defaultPass);
+    setPassword("");
   };
 
-  const executeSuccessfulLogin = (profile: UserProfile, redirectUrl: string) => {
+  const executeLogin = (profile: UserProfile, url: string) => {
     loginAsUser(profile);
-    router.push(redirectUrl);
-  };
-
-  const handleOneClickLogin = (tier: RoleTier) => {
-    const config = ROLE_CONFIGS[tier];
-    setLoading(true);
-    setError(null);
-
-    const profile: UserProfile = {
-      id: `usr-${config.employeeId.toLowerCase()}`,
-      email: config.defaultEmail,
-      firstName: config.name.split(" ")[0],
-      lastName: config.name.split(" ").slice(1).join(" ") || "",
-      role: config.role,
-      employeeId: config.employeeId,
-      username: config.username,
-      department: config.department
-    };
-
-    setTimeout(() => {
-      executeSuccessfulLogin(profile, config.redirectUrl);
-    }, 400);
+    router.push(url);
   };
 
   const handleFormLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!password.trim()) { setError("Please enter your password."); return; }
     setLoading(true);
     setError(null);
 
     try {
-      // 1. Try real Supabase auth
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
       if (!authError && data?.session?.user) {
-        let detectedRole: ScomsRole = currentConfig.role;
-        const metaRole = data.session.user.user_metadata?.role;
-        if (metaRole) {
-          detectedRole = metaRole.toLowerCase().replace(/\s+/g, "_") as ScomsRole;
-        }
-
+        const u = data.session.user;
+        const meta = u.user_metadata || {};
+        const detectedRole: ScomsRole = meta.role
+          ? (meta.role.toLowerCase().replace(/\s+/g, "_") as ScomsRole)
+          : currentConfig.role;
         const profile: UserProfile = {
-          id: data.session.user.id,
-          email: data.session.user.email || email,
-          firstName: data.session.user.user_metadata?.first_name || currentConfig.name.split(" ")[0],
-          lastName: data.session.user.user_metadata?.last_name || currentConfig.name.split(" ").slice(1).join(" "),
+          id: u.id,
+          email: u.email || email,
+          firstName: meta.first_name || currentConfig.name.split(" ")[0],
+          lastName: meta.last_name || currentConfig.name.split(" ").slice(1).join(" "),
           role: detectedRole,
-          employeeId: data.session.user.user_metadata?.employee_id || currentConfig.employeeId,
-          username: data.session.user.user_metadata?.username || currentConfig.username,
+          employeeId: meta.employee_id || currentConfig.employeeId,
+          username: meta.username || currentConfig.username,
           department: currentConfig.department
         };
-
-        executeSuccessfulLogin(profile, currentConfig.redirectUrl);
+        executeLogin(profile, currentConfig.redirectUrl);
         return;
       }
     } catch (err) {
-      console.warn("Supabase network error, authenticating via verified credentials:", err);
+      console.warn("Supabase auth error, falling back to credentials check:", err);
     }
 
-    // 2. Verified fallback credentials check for seamless login experience
+    // Fallback: accept any password >= 4 chars for demo
     if (password.length >= 4) {
-      const cleanFirst = email.split("@")[0].replace(/[^a-zA-Z0-9]/g, "");
       const profile: UserProfile = {
         id: `usr-${currentConfig.employeeId.toLowerCase()}`,
-        email: email,
-        firstName: currentConfig.name.split(" ")[0] || cleanFirst,
-        lastName: currentConfig.name.split(" ").slice(1).join(" ") || "Member",
+        email,
+        firstName: currentConfig.name.split(" ")[0],
+        lastName: currentConfig.name.split(" ").slice(1).join(" ") || "",
         role: currentConfig.role,
         employeeId: currentConfig.employeeId,
         username: currentConfig.username,
         department: currentConfig.department
       };
-
-      executeSuccessfulLogin(profile, currentConfig.redirectUrl);
+      executeLogin(profile, currentConfig.redirectUrl);
     } else {
-      setError("Please enter a valid password (minimum 4 characters).");
+      setError("Invalid credentials. Password must be at least 4 characters.");
       setLoading(false);
     }
   };
 
-  const TierIcon = currentConfig.icon;
-
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-between p-4 sm:p-6 lg:p-8 font-sans selection:bg-blue-600 selection:text-white relative overflow-hidden">
+    <div className="min-h-screen bg-slate-950 flex flex-col font-sans selection:bg-blue-600 selection:text-white overflow-hidden relative">
       
-      {/* Background Ambient Glows */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Background glows */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-blue-700/10 rounded-full blur-[100px]" />
+        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] bg-indigo-700/10 rounded-full blur-[100px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[600px] bg-slate-900/50 rounded-full blur-[80px]" />
+      </div>
 
-      {/* Top Header Bar */}
-      <header className="max-w-6xl mx-auto w-full flex items-center justify-between z-10">
+      {/* Top Nav */}
+      <header className="relative z-10 w-full px-5 sm:px-8 py-5 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-            <Shield className="w-5 h-5" />
+          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-blue-500 to-blue-700 flex items-center justify-center shadow-lg shadow-blue-900/40 group-hover:scale-105 transition-transform">
+            <Shield className="w-4.5 h-4.5 text-white" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base tracking-tight text-white font-mono">
-                SCOMS
-              </span>
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30 font-bold uppercase">
-                ENTERPRISE v4.0
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-medium">
-              Secure Cleaning Operations Platform
-            </p>
+            <span className="font-extrabold text-sm text-white tracking-tight">SCOMS</span>
+            <span className="ml-2 text-[10px] px-1.5 py-0.5 bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded font-bold uppercase">v4.0</span>
+            <p className="text-[10px] text-slate-500 mt-0.5">Secure Cleaning Operations</p>
           </div>
         </Link>
-
-        <Link
-          href="/"
-          className="text-xs font-bold text-slate-400 hover:text-white transition flex items-center gap-1.5"
-        >
-          <span>Return Home</span>
-          <ChevronRight className="w-4 h-4" />
+        <Link href="/" className="text-xs text-slate-500 hover:text-slate-300 transition flex items-center gap-1.5">
+          <span>Home</span>
+          <ChevronRight className="w-3.5 h-3.5" />
         </Link>
       </header>
 
-      {/* Main Login Container */}
-      <main className="max-w-xl mx-auto w-full my-8 z-10">
-        
-        {/* Role Selector Tabs (Separating the 4 Roles Cleanly) */}
-        <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 mb-6 backdrop-blur-md shadow-xl flex items-center gap-1 overflow-x-auto">
-          {(["super_admin", "company_client", "manager_supervisor", "cleaner_field"] as const).map((tierKey) => {
-            const config = ROLE_CONFIGS[tierKey];
-            const isSelected = activeTier === tierKey;
-            const Icon = config.icon;
-
-            return (
-              <button
-                key={tierKey}
-                onClick={() => handleTabChange(tierKey)}
-                className={`flex-1 min-w-[110px] sm:min-w-0 py-2.5 px-3 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shrink-0 ${
-                  isSelected
-                    ? config.activeBg
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
-                }`}
-              >
-                <Icon className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">{config.tabLabel}</span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Login Card */}
-        <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-2xl border border-slate-100 animate-in fade-in duration-150">
+      {/* Main */}
+      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-8">
+        <div className="w-full max-w-md space-y-5">
           
-          {/* Active Role Header Banner */}
-          <div className="flex items-start justify-between gap-4 pb-5 border-b border-slate-100">
-            <div className="space-y-1">
-              <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-blue-600" />
-                {currentConfig.badge}
-              </span>
-              <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-                {currentConfig.title}
-              </h2>
-              <p className="text-xs text-slate-500 leading-relaxed">
-                {currentConfig.subtitle}
-              </p>
-            </div>
-
-            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-              activeTier === 'super_admin' ? 'bg-blue-50 text-blue-600' :
-              activeTier === 'company_client' ? 'bg-emerald-50 text-emerald-600' :
-              activeTier === 'manager_supervisor' ? 'bg-purple-50 text-purple-600' :
-              'bg-amber-50 text-amber-600'
-            }`}>
-              <TierIcon className="w-6 h-6" />
-            </div>
+          {/* Title */}
+          <div className="text-center space-y-1.5">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">Sign In to SCOMS</h1>
+            <p className="text-sm text-slate-400">Select your role to access your workspace</p>
           </div>
 
-          {/* Quick Instant Sign-In Button */}
-          <div className="pt-5">
-            <button
-              type="button"
-              onClick={() => handleOneClickLogin(activeTier)}
-              disabled={loading}
-              className="w-full py-3 px-4 bg-slate-900 hover:bg-blue-600 text-white rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-between shadow-md group"
-            >
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-amber-400 group-hover:rotate-12 transition-transform" />
-                <span>1-Click Instant Login as {currentConfig.name}</span>
-              </div>
-              <span className="text-[11px] font-mono text-slate-300 font-semibold bg-slate-800 px-2 py-0.5 rounded-md">
-                {currentConfig.employeeId}
-              </span>
-            </button>
-          </div>
-
-          <div className="relative my-6 text-center">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-slate-100" />
-            </div>
-            <span className="relative bg-white px-3 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-              Or Sign In with Credentials
-            </span>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="mb-4 p-3 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* Standard Login Form */}
-          <form onSubmit={handleFormLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
-                Work Email or Employee ID
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. admin@securecleaningoperations.com or EMP-0001"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                />
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">
-                  Password
-                </label>
-                <span className="text-[11px] font-mono text-slate-400">
-                  Demo Pass: {currentConfig.defaultPass}
-                </span>
-              </div>
-              <div className="relative">
-                <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  required
-                  type={showPassword ? "text" : "password"}
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full pl-10 pr-10 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 font-medium"
-                />
+          {/* Role Tabs */}
+          <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-1.5 flex gap-1 backdrop-blur-sm overflow-x-auto">
+            {(["super_admin", "company_client", "manager_supervisor", "cleaner_field"] as const).map((tierKey) => {
+              const config = ROLE_CONFIGS[tierKey];
+              const Icon = config.icon;
+              const isActive = activeTier === tierKey;
+              return (
                 <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1"
+                  key={tierKey}
+                  onClick={() => handleTabChange(tierKey)}
+                  className={`flex-1 min-w-[90px] py-2.5 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 shrink-0 ${isActive ? config.tabActive : config.tabInactive}`}
                 >
-                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span className="leading-tight text-center">{config.tabLabel}</span>
                 </button>
+              );
+            })}
+          </div>
+
+          {/* Card */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+            
+            {/* Card header gradient */}
+            <div className={`bg-gradient-to-r ${currentConfig.headerGradient} px-6 py-5 flex items-center justify-between`}>
+              <div className="space-y-1">
+                <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full ${iconBg} border border-white/10`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${dot}`} />
+                  {currentConfig.badge}
+                </span>
+                <h2 className="text-lg sm:text-xl font-extrabold text-white tracking-tight leading-tight">
+                  {currentConfig.title}
+                </h2>
+                <p className="text-xs text-white/60 leading-relaxed max-w-xs">
+                  {currentConfig.subtitle}
+                </p>
+              </div>
+              <div className={`w-12 h-12 rounded-2xl ${iconBg} flex items-center justify-center shrink-0 border border-white/10`}>
+                <TierIcon className="w-6 h-6" />
               </div>
             </div>
 
-            {/* Profile Meta Hint */}
-            <div className="p-3 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between text-xs text-slate-500">
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500" />
-                <span className="font-semibold text-slate-700">Assigned Username:</span>
-                <span className="font-mono text-blue-600 font-bold">{currentConfig.username}</span>
-              </div>
-              <span className="font-mono text-slate-400 font-bold">{currentConfig.employeeId}</span>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs sm:text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg shadow-blue-900/20 disabled:opacity-50"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              ) : (
-                <>
-                  <LogIn className="w-4 h-4" />
-                  <span>Sign In as {currentConfig.tabLabel}</span>
-                </>
+            {/* Form area */}
+            <div className="p-5 sm:p-6 space-y-4">
+              
+              {error && (
+                <div className="p-3 rounded-xl bg-rose-950/40 border border-rose-800/50 text-xs text-rose-300 flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+                  <span>{error}</span>
+                </div>
               )}
-            </button>
-          </form>
 
-          {/* Quick Switch Cards Footer */}
-          <div className="mt-6 pt-5 border-t border-slate-100">
-            <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider text-center mb-3">
-              Switch Target Portal
-            </p>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <Link
-                href="/employee/login"
-                className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 text-center font-semibold transition"
-              >
-                Mobile Cleaner Portal →
-              </Link>
-              <Link
-                href="/portal/login"
-                className="p-2.5 rounded-xl border border-slate-200 bg-slate-50 hover:bg-white text-slate-700 text-center font-semibold transition"
-              >
-                Client Facility Portal →
-              </Link>
+              <form onSubmit={handleFormLogin} className="space-y-4">
+                {/* Email */}
+                <div>
+                  <label className="block text-xs font-semibold text-slate-400 mb-1.5 uppercase tracking-wider">
+                    Work Email or Employee ID
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      required
+                      type="text"
+                      placeholder="email@company.com or EMP-0001"
+                      value={email}
+                      onChange={e => setEmail(e.target.value)}
+                      className={`w-full pl-10 pr-4 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 ${ring} transition`}
+                    />
+                  </div>
+                </div>
+
+                {/* Password */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      Password
+                    </label>
+                    <span className="text-[10px] text-slate-600 font-mono">
+                      Demo: {currentConfig.defaultPass}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <KeyRound className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <input
+                      required
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Enter your password"
+                      value={password}
+                      onChange={e => setPassword(e.target.value)}
+                      className={`w-full pl-10 pr-10 py-3 bg-slate-800 border border-slate-700 rounded-xl text-sm text-white placeholder:text-slate-500 focus:outline-none focus:ring-1 ${ring} transition`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300 transition p-0.5"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Identity badge */}
+                <div className="flex items-center justify-between p-3 bg-slate-800/50 border border-slate-700/50 rounded-xl text-xs">
+                  <div className="flex items-center gap-2 text-slate-400">
+                    <span className={`w-2 h-2 rounded-full ${dot}`} />
+                    <span className="font-mono text-slate-300">{currentConfig.username}</span>
+                  </div>
+                  <span className="font-mono text-slate-500 font-bold">{currentConfig.employeeId}</span>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className={`w-full py-3 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-lg ${btn} disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {loading ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    <>
+                      <Lock className="w-4 h-4" />
+                      Sign In as {currentConfig.tabLabel}
+                      <ArrowRight className="w-4 h-4 ml-auto" />
+                    </>
+                  )}
+                </button>
+              </form>
+
+              {/* Portal links */}
+              <div className="pt-2 border-t border-slate-800">
+                <p className="text-[10px] uppercase font-bold text-slate-600 tracking-wider text-center mb-2.5">Other Portals</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Link href="/employee/login"
+                    className="p-2.5 rounded-xl border border-slate-800 bg-slate-800/30 hover:bg-slate-800 text-slate-500 hover:text-slate-300 text-xs text-center font-semibold transition">
+                    Mobile Crew Portal
+                  </Link>
+                  <Link href="/portal/login"
+                    className="p-2.5 rounded-xl border border-slate-800 bg-slate-800/30 hover:bg-slate-800 text-slate-500 hover:text-slate-300 text-xs text-center font-semibold transition">
+                    Client Facility Portal
+                  </Link>
+                </div>
+              </div>
             </div>
           </div>
+
+          <p className="text-center text-[11px] text-slate-600 pb-4">
+            SCOMS Enterprise v4.0 &bull; Secure Cleaning Operations Management System
+          </p>
         </div>
       </main>
-
-      {/* Footer */}
-      <footer className="max-w-6xl mx-auto w-full text-center text-xs text-slate-500 py-2">
-        <p>SCOMS Enterprise v4.0 • Secure Cleaning Operations Management System</p>
-      </footer>
     </div>
   );
 }
