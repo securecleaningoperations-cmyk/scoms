@@ -324,56 +324,56 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-[1400px] mx-auto space-y-6 font-sans pb-24">
-      {/* ── Super Admin / Owner Command Banner ──────────────────────── */}
-      <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white shadow-xl relative overflow-hidden border border-slate-800">
-
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+      {/* ── Executive Command Banner (Clean White Theme) ───────────────── */}
+      <div className="bg-white rounded-2xl p-6 sm:p-7 text-slate-900 shadow-sm border border-slate-200">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Command Center
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
+                Executive Command Center
               </span>
-              <span className="flex items-center gap-1.5 text-xs text-blue-400 font-semibold">
-                <span className="w-2 h-2 rounded-full bg-blue-400"></span> All Hubs Operational
+              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> All 14 Operational Engines Active
               </span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">
-              Welcome back, {user?.firstName || activeRole.replace(/_/g, ' ')}
+            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              Welcome back, {user?.firstName || "David"} {user?.lastName || "Vance"}
             </h1>
-            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              SCOMS Enterprise Platform v6.1 • Centralized operations for facility services.
+            <p className="text-slate-500 text-xs sm:text-sm max-w-2xl leading-relaxed">
+              Secure Cleaning Operations Inc. &bull; Enterprise Platform v4.0 &bull; Release 6.1
             </p>
           </div>
 
-          {/* Quick Role Switcher / Simulator for Platform Owner */}
-          <div className="bg-slate-800 p-4 rounded-2xl border border-slate-700 space-y-2 flex-shrink-0">
-            <div className="flex items-center justify-between gap-3 text-xs">
-              <span className="text-slate-400 font-medium">Viewing Platform As:</span>
-              <span className="font-bold text-blue-400 uppercase text-[11px]">{activeRole.replace(/_/g, ' ')}</span>
+          {/* Enterprise Onboarding & Readiness Status Hub */}
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-2.5 flex-shrink-0 min-w-[280px]">
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-slate-600 font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-4 h-4 text-blue-600" />
+                Enterprise Readiness
+              </span>
+              <span className="font-mono text-blue-700 font-bold text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                83% Setup
+              </span>
             </div>
-            <select
-              value={activeRole}
-              onChange={(e) => setActiveRole(e.target.value as ScomsRole)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-xs text-white font-medium focus:outline-none focus:border-blue-500"
-            >
-              <option value="super_admin">Super Admin / Platform Owner (All Access)</option>
-              <option value="operations_manager">Operations Manager (Dispatch & Field)</option>
-              <option value="supervisor">Field Supervisor (QA & Shifts)</option>
-              <option value="hr_manager">HR & Talent Manager</option>
-              <option value="finance_admin">Finance & Accounting Lead</option>
-              <option value="franchise_admin">Franchise Hub Operator</option>
-              <option value="field_employee">Technician / Cleaner View</option>
-            </select>
+            <div className="w-full bg-slate-200 rounded-full h-2">
+              <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: "83%" }}></div>
+            </div>
+            <div className="flex items-center justify-between pt-1">
+              <span className="text-[11px] text-slate-500">5 of 6 modules configured</span>
+              <Link
+                href="/dashboard/onboarding"
+                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
+              >
+                <span>Onboarding Hub</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>
 
-      {activeRole === 'super_admin' && renderSuperAdmin()}
-      {activeRole === 'operations_manager' && renderOperationsManager()}
-      {activeRole === 'hr_manager' && renderHRManager()}
-      {activeRole === 'finance_admin' && renderFinanceAdmin()}
-      {activeRole === 'field_employee' && renderFieldEmployee()}
-      {['supervisor', 'franchise_admin', 'sales_manager', 'quality_manager'].includes(activeRole) && renderDefaultView()}
+      {/* Super Admin Executive Dashboard (Consolidated Enterprise Command) */}
+      {renderSuperAdmin()}
       
     </div>
   );

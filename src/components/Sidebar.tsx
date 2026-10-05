@@ -475,87 +475,42 @@ export function Sidebar({
         )}
       </div>
 
-      {/* Role Switcher & Role-Specific Options Strip */}
+      {/* Enterprise Operational Workspace Strip */}
       {!collapsed && (
-        <div className="p-2 border-b border-slate-200 bg-slate-50/70" ref={roleMenuRef}>
-          <div className="relative">
-            <button
-              onClick={() => setShowRoleMenu((prev) => !prev)}
-              className="w-full flex items-center justify-between p-1.5 rounded-lg bg-white border border-slate-200 shadow-2xs hover:border-blue-300 transition-all text-left"
-              title="Switch role view to see specific options for other roles"
+        <div className="p-2 border-b border-slate-200 bg-slate-50/70">
+          <div className="p-2 rounded-xl bg-white border border-slate-200 shadow-2xs">
+            <div className="flex items-center justify-between mb-1">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[11px] font-bold text-slate-800">Master Operations Hub</span>
+              </div>
+              <span className="text-[10px] font-mono text-blue-700 font-bold bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200">
+                v4.0
+              </span>
+            </div>
+            <Link
+              href="/dashboard/onboarding"
+              onClick={onNavigate}
+              className="flex items-center justify-between p-1.5 mt-1 rounded-lg bg-blue-50 hover:bg-blue-100/80 border border-blue-200/80 transition-colors text-blue-900 group"
             >
-              <div className="flex items-center gap-2 min-w-0">
-                <div className={clsx("w-6 h-6 rounded-md flex items-center justify-center flex-shrink-0", currentRolePreset.color)}>
-                  <currentRolePreset.Icon className="w-3.5 h-3.5" />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-xs font-bold text-slate-800 truncate">
-                    {currentRolePreset.name}
-                  </p>
-                  <p className="text-[10px] text-blue-600 font-semibold truncate">
-                    {currentRolePreset.badge}
-                  </p>
-                </div>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            </button>
-
-            {/* Role Dropdown Menu */}
-            {showRoleMenu && (
-              <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-xl border border-slate-200 shadow-xl z-50 p-1.5 max-h-[360px] overflow-y-auto space-y-1 animate-scale-in">
-                <div className="px-2 py-1.5 border-b border-slate-100 flex items-center justify-between">
-                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">
-                    Role-Specific Views
-                  </span>
-                  <span className="text-[10px] text-slate-400 font-mono">8 Roles</span>
-                </div>
-
-                {ROLE_PRESETS.map((rp) => (
-                  <button
-                    key={rp.id}
-                    onClick={() => {
-                      setActiveRole(rp.id);
-                      setShowRoleMenu(false);
-                    }}
-                    className={clsx(
-                      "w-full flex items-start gap-2.5 p-2 rounded-lg text-left transition-colors",
-                      activeRole === rp.id
-                        ? "bg-blue-50 border border-blue-200 text-blue-900"
-                        : "hover:bg-slate-50 text-slate-700"
-                    )}
-                  >
-                    <div className={clsx("w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5", rp.color)}>
-                      <rp.Icon className="w-4 h-4" />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-bold truncate">{rp.name}</span>
-                        {activeRole === rp.id && <Check className="w-3.5 h-3.5 text-blue-600 shrink-0" />}
-                      </div>
-                      <p className="text-[10px] text-slate-500 leading-tight mt-0.5">
-                        {rp.description}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-
-                {/* Filter Toggle */}
-                <div className="pt-2 border-t border-slate-100 px-2 py-1 flex items-center justify-between">
-                  <span className="text-xs text-slate-600 font-medium">Role Filter Only</span>
-                  <input
-                    type="checkbox"
-                    checked={filterByRole}
-                    onChange={(e) => setFilterByRole(e.target.checked)}
-                    className="rounded text-blue-600 focus:ring-blue-500 w-3.5 h-3.5 cursor-pointer"
-                  />
-                </div>
-              </div>
-            )}
+              <span className="text-[11px] font-bold flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-blue-600" />
+                Onboarding Center
+              </span>
+              <span className="text-[10px] font-mono text-blue-600 group-hover:translate-x-0.5 transition-transform font-bold">
+                83% &rarr;
+              </span>
+            </Link>
           </div>
 
-          {/* Quick Shortcuts for Selected Role */}
+          {/* Quick Shortcuts */}
           <div className="mt-1.5 flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
-            {currentRolePreset.quickLinks.map((ql) => (
+            {[
+              { label: "Dispatch", href: "/dashboard/scheduling/dispatch" },
+              { label: "GL Ledger", href: "/dashboard/gl" },
+              { label: "Documents", href: "/dashboard/documents" },
+              { label: "Phone Agent", href: "/dashboard/phone-agent" },
+            ].map((ql) => (
               <Link
                 key={ql.href}
                 href={ql.href}
