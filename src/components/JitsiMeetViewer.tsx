@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import React, { useState, useEffect } from "react";
 import {
@@ -59,10 +59,13 @@ export function JitsiMeetViewer({
     return `${m.toString().padStart(2, "0")}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Build stable iframe URL - avoids the removeChild crash from the JS External API
+  const [serverHost, setServerHost] = useState<string>("meet.ffrn.de");
+
+  // Build instant-start iframe URL without login prompts or moderator gates
   const jitsiUrl = [
-    `https://meet.jit.si/${encodeURIComponent(sanitizedRoom)}`,
+    `https://${serverHost}/${encodeURIComponent(sanitizedRoom)}`,
     `#config.prejoinPageEnabled=false`,
+    `&config.requireDisplayName=false`,
     `&config.startWithAudioMuted=false`,
     `&config.startWithVideoMuted=false`,
     `&config.disableDeepLinking=true`,
@@ -72,7 +75,7 @@ export function JitsiMeetViewer({
     `&userInfo.email=${encodeURIComponent(email)}`,
   ].join("");
 
-  const fullMeetLink = `https://meet.jit.si/${sanitizedRoom}`;
+  const fullMeetLink = `https://${serverHost}/${sanitizedRoom}`;
 
   const copyMeetingLink = () => {
     try { navigator.clipboard.writeText(fullMeetLink); } catch {}
@@ -120,8 +123,18 @@ export function JitsiMeetViewer({
           <span className="font-bold text-xs text-white truncate max-w-[120px] sm:max-w-xs">{sanitizedRoom}</span>
           <span className="hidden sm:flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
             <Radio className="w-3 h-3 animate-pulse" />
-            Live
+            Instant Live
           </span>
+          <select
+            value={serverHost}
+            onChange={(e) => setServerHost(e.target.value)}
+            className="hidden md:inline-block bg-slate-800 text-[10px] text-slate-300 font-semibold px-2 py-0.5 rounded border border-slate-700 focus:outline-none focus:border-blue-500"
+            title="Video Conference Engine"
+          >
+            <option value="meet.ffrn.de">Instant Engine (No Login)</option>
+            <option value="jitsi.riot.im">Matrix Riot Engine</option>
+            <option value="meet.jit.si">Jitsi Official</option>
+          </select>
           <span className="font-mono text-[10px] text-slate-400 bg-slate-800 px-2 py-0.5 rounded-full">{formatTime(elapsedSeconds)}</span>
         </div>
 

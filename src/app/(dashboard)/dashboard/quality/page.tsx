@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import { PageHeader, StatusBadge, Modal, FormField, MetricCard } from "@/components/ui";
 import { DataTable, type Column } from "@/components/ui/DataTable";
@@ -105,7 +106,7 @@ export default function QualityPage() {
   // Compute metrics safely
   const metrics = useMemo(() => {
     if (!inspections || inspections.length === 0) {
-      return { total: 0, avgScore: "0%", passRate: "0%", failedCount: 0 };
+      return { total: 0, avgScore: "0%", passRate: "0%", passedCount: 0, failedCount: 0 };
     }
     const total = inspections.length;
     const avg = Math.round(
@@ -120,6 +121,7 @@ export default function QualityPage() {
       total,
       avgScore: `${avg}%`,
       passRate: `${rate}%`,
+      passedCount: passed,
       failedCount: failed,
     };
   }, [inspections]);
@@ -399,6 +401,41 @@ export default function QualityPage() {
         }
       />
 
+      {/* Quality Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto scrollbar-none pb-px">
+        <Link
+          href="/dashboard/quality"
+          className="px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 shrink-0"
+        >
+          <ClipboardList className="w-4 h-4" />
+          <span>QA Inspections</span>
+          <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-bold border border-blue-200">
+            {inspections.length}
+          </span>
+        </Link>
+        <Link
+          href="/dashboard/quality/capa"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <span>Six Sigma CAPA</span>
+        </Link>
+        <Link
+          href="/dashboard/jobs/checklists"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Checklists &amp; Protocols</span>
+        </Link>
+        <Link
+          href="/dashboard/improvement"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <Sparkles className="w-4 h-4 text-purple-500" />
+          <span>Continuous Improvement</span>
+        </Link>
+      </div>
+
       {/* Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
@@ -428,37 +465,58 @@ export default function QualityPage() {
       </div>
 
       {/* Filter Tabs */}
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
-        <button
-          onClick={() => setActiveFilter("all")}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-            activeFilter === "all"
-              ? "bg-blue-600 text-white shadow-sm"
-              : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-          }`}
-        >
-          All Audits ({inspections.length})
-        </button>
-        <button
-          onClick={() => setActiveFilter("passed")}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-            activeFilter === "passed"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "text-slate-600 hover:text-emerald-700 hover:bg-slate-100"
-          }`}
-        >
-          Passed (80%+)
-        </button>
-        <button
-          onClick={() => setActiveFilter("deficiencies")}
-          className={`px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors ${
-            activeFilter === "deficiencies"
-              ? "bg-rose-600 text-white shadow-sm"
-              : "text-slate-600 hover:text-rose-700 hover:bg-slate-100"
-          }`}
-        >
-          Needs Action ({metrics.failedCount})
-        </button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="bg-slate-100 p-1 rounded-xl inline-flex gap-1 border border-slate-200 shadow-2xs">
+          <button
+            onClick={() => setActiveFilter("all")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              activeFilter === "all"
+                ? "bg-white text-blue-700 shadow-xs border border-slate-200/80"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>All Audits</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              activeFilter === "all" ? "bg-blue-100 text-blue-700" : "bg-slate-200 text-slate-600"
+            }`}>
+              {inspections.length}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveFilter("passed")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              activeFilter === "passed"
+                ? "bg-white text-emerald-700 shadow-xs border border-slate-200/80"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>Passed (80%+)</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              activeFilter === "passed" ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
+            }`}>
+              {metrics.passedCount}
+            </span>
+          </button>
+          <button
+            onClick={() => setActiveFilter("deficiencies")}
+            className={`px-3.5 py-1.5 text-xs font-bold rounded-lg transition-all flex items-center gap-1.5 ${
+              activeFilter === "deficiencies"
+                ? "bg-white text-rose-700 shadow-xs border border-slate-200/80"
+                : "text-slate-600 hover:text-slate-900"
+            }`}
+          >
+            <span>Needs Action</span>
+            <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono font-bold ${
+              activeFilter === "deficiencies" ? "bg-rose-100 text-rose-700" : "bg-slate-200 text-slate-600"
+            }`}>
+              {metrics.failedCount}
+            </span>
+          </button>
+        </div>
+
+        <div className="text-xs text-slate-500 font-medium">
+          Showing <strong className="text-slate-800">{filteredInspections.length}</strong> of {inspections.length} audit records
+        </div>
       </div>
 
       {/* Table */}

@@ -257,11 +257,12 @@ function MeetingsComponent() {
 
   const handleJoinByCode = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!joinInputCode.trim()) return;
     let room = joinInputCode.trim();
-    // Support pasting full URL like https://meet.jit.si/SCOMS-Room-123
+    // Support pasting full URL like https://meet.ffrn.de/SCOMS-Room-123 or meet.jit.si
     if (room.includes('meet.jit.si/')) {
       room = room.split('meet.jit.si/')[1].split('?')[0].split('#')[0];
+    } else if (room.includes('meet.ffrn.de/')) {
+      room = room.split('meet.ffrn.de/')[1].split('?')[0].split('#')[0];
     }
     setActiveMeetingTitle(`SCOMS Conference (${room})`);
     setActiveMeeting(room);
@@ -384,7 +385,7 @@ function MeetingsComponent() {
   };
 
   const copyMeetingLink = (meetUrl: string, id: string) => {
-    const fullUrl = `https://meet.jit.si/${meetUrl}`;
+    const fullUrl = `https://meet.ffrn.de/${meetUrl}`;
     if (navigator?.clipboard) {
       navigator.clipboard.writeText(fullUrl);
       setCopiedId(id);

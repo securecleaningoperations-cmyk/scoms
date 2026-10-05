@@ -201,11 +201,17 @@ export default function MapComponent({ jobs = [] }: { jobs?: any[] }) {
   const [showDirections, setShowDirections] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Map Tile Providers
+  // Map Tile Providers (100% Free, No API Keys Required)
   const tileUrls = {
-    streets: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    streets: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
     satellite: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    dark: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+  };
+
+  const tileAttributions = {
+    streets: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    satellite: '&copy; Esri, Maxar, Earthstar Geographics',
+    dark: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   };
 
   const handleFacilityClick = (fac: any) => {
@@ -320,8 +326,11 @@ export default function MapComponent({ jobs = [] }: { jobs?: any[] }) {
           <MapFlyController center={mapCenter} zoom={mapZoom} />
 
           <TileLayer
-            attribution='&copy; <a href="https://carto.com/">Carto</a> &copy; OpenStreetMap'
+            key={mapType}
+            attribution={tileAttributions[mapType]}
             url={tileUrls[mapType]}
+            className={mapType === 'dark' ? 'dark-map-tiles' : undefined}
+            maxZoom={19}
           />
 
           {/* Active Navigation Driving Route Polyline */}

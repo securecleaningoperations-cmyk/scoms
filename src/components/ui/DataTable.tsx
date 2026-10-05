@@ -50,6 +50,24 @@ interface DataTableProps<T extends Record<string, any>> {
   compact?: boolean;
 }
 
+// Helper to safely render cell values without crashing React with error #31 on raw objects
+function safeRenderCellValue(content: any): React.ReactNode {
+  if (content === null || content === undefined) return "—";
+  if (typeof content === "boolean") return content ? "Yes" : "No";
+  if (typeof content === "number") return content;
+  if (typeof content === "string") return content === "" ? "—" : content;
+  if (React.isValidElement(content)) return content;
+  if (typeof content === "object") {
+    if (typeof content.name === "string") return content.name;
+    if (typeof content.title === "string") return content.title;
+    if (typeof content.label === "string") return content.label;
+    if (typeof content.code === "string") return content.code;
+    if (typeof content.id === "string") return content.id;
+    return "—";
+  }
+  return String(content);
+}
+
 // ── Component ──────────────────────────────────────────────────────────
 
 export function DataTable<T extends Record<string, any>>({
@@ -334,35 +352,37 @@ export function DataTable<T extends Record<string, any>>({
                         />
                       </td>
                     )}
-                    {visibleColumns.map((col) => (
-                      <td
-                        key={col.key}
-                        className={clsx(
-                          compact && "!py-2",
-                          col.align === "right" && "text-right",
-                          col.align === "center" && "text-center"
-                        )}
-                      >
-                        {col.render
-                          ? (() => {
-                              try {
-                                if (col.render.length === 1) {
-                                  return col.render(row, row, i);
-                                }
-                                return col.render(row[col.key], row, i);
-                              } catch {
-                                try {
-                                  return col.render(row, row, i);
-                                } catch {
-                                  return row[col.key] ?? "—";
-                                }
-                              }
-                            })()
-                          : col.key === "status"
-                          ? <StatusBadge status={String(row[col.key] || "—")} />
-                          : (row[col.key] ?? "—")}
-                      </td>
-                    ))}
+                    {visibleColumns.map((col) => {
+                      let cellContent: any;
+                      if (col.render) {
+                        try {
+                          cellContent = col.render(row[col.key], row, i);
+                        } catch {
+                          try {
+                            cellContent = col.render(row as any, row, i);
+                          } catch {
+                            cellContent = row[col.key];
+                          }
+                        }
+                      } else if (col.key === "status") {
+                        cellContent = <StatusBadge status={String(row[col.key] || "—")} />;
+                      } else {
+                        cellContent = row[col.key];
+                      }
+
+                      return (
+                        <td
+                          key={col.key}
+                          className={clsx(
+                            compact && "!py-2",
+                            col.align === "right" && "text-right",
+                            col.align === "center" && "text-center"
+                          )}
+                        >
+                          {safeRenderCellValue(cellContent)}
+                        </td>
+                      );
+                    })}
                     {rowActions && (
                       <td onClick={(e) => e.stopPropagation()}>
                         {rowActions(row)}

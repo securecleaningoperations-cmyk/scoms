@@ -14,6 +14,7 @@ import {
 import Link from "next/link";
 import clsx from "clsx";
 import { QuickCreateModal, type CreateEntityType } from "@/components/QuickCreateModal";
+import { InviteUserModal } from "@/components/InviteUserModal";
 
 // ── Quick Create Categories ───────────────────────────────────────────
 
@@ -658,6 +659,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
   const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [createModalType, setCreateModalType] = useState<CreateEntityType>("lead");
+  const [inviteModalOpen, setInviteModalOpen] = useState(false);
 
   // CMD+K shortcut
   useEffect(() => {
@@ -752,6 +754,19 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
               />
             </div>
 
+            {/* Invite to Organization Button */}
+            <button
+              onClick={() => setInviteModalOpen(true)}
+              className="hidden lg:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 text-xs font-bold transition shadow-2xs"
+              title="Invite Users to Organization via Email"
+            >
+              <UserPlus className="w-3.5 h-3.5 text-blue-600" />
+              <span>Invite</span>
+              <span className="font-mono text-[10px] bg-white px-1.5 py-0.2 rounded border border-blue-300 text-blue-900 font-extrabold">
+                ORG-SCOMS-7749
+              </span>
+            </button>
+
             {/* Team Chat (WhatsApp Style) */}
             <Link
               href="/dashboard/communications/chat"
@@ -797,6 +812,12 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
         open={createModalOpen}
         initialType={createModalType}
         onClose={() => setCreateModalOpen(false)}
+      />
+
+      {/* Admin Organization Email Invite Modal */}
+      <InviteUserModal
+        isOpen={inviteModalOpen}
+        onClose={() => setInviteModalOpen(false)}
       />
       </div>
     </div>

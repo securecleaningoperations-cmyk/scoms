@@ -37,6 +37,8 @@ export interface UserProfile {
   username?: string;
   employeeId?: string;
   department?: string;
+  organizationName?: string;
+  organizationCode?: string;
 }
 
 interface AuthState {
@@ -184,7 +186,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       tenantId,
       username,
       employeeId,
-      department: authUser.user_metadata?.department || (role === 'super_admin' ? 'Executive Platform Ownership' : 'Field Operations')
+      department: authUser.user_metadata?.department || (role === 'super_admin' ? 'Executive Platform Ownership' : 'Field Operations'),
+      organizationName: authUser.user_metadata?.organization_name || "Secure Cleaning Operations Inc.",
+      organizationCode: authUser.user_metadata?.organization_code || "ORG-SCOMS-7749"
     };
   }, []);
 

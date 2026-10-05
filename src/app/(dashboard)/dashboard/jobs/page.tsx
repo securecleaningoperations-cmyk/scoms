@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { PageHeader, StatusBadge, Modal, FormField, MetricCard } from "@/components/ui";
 import { DataTable, type Column } from "@/components/ui/DataTable";
-import { ClipboardList, Plus, Play, CheckCircle2, Clock, AlertTriangle, CalendarDays } from "lucide-react";
+import { ClipboardList, Plus, Play, CheckCircle2, Clock, AlertTriangle, CalendarDays, CheckSquare, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 
 // ── Types ──────────────────────────────────────────────────────────────
@@ -22,6 +22,12 @@ interface Job {
   location?: string;
   notes?: string;
   created_at?: string;
+  service?: string;
+  title?: string;
+  client?: string;
+  clients?: any;
+  scheduled_at?: string;
+  location_address?: string;
 }
 
 // ── Job Lifecycle (spec section 19) ─────────────────────────────────
@@ -202,43 +208,55 @@ export default function JobsPage() {
       label: "Job ID",
       sortable: true,
       width: "100px",
-      render: (val) => (
-        <span className="text-caption font-mono text-text-muted">{val?.substring(0, 8)}...</span>
-      ),
+      render: (val, row) => {
+        const idStr = typeof val === "string" ? val : (typeof row?.id === "string" ? row.id : "");
+        return <span className="text-caption font-mono text-text-muted">{idStr ? `${idStr.substring(0, 8)}...` : "—"}</span>;
+      },
     },
     {
       key: "service_type",
       label: "Service",
       sortable: true,
-      render: (val) => (
-        <span className="text-body-sm font-medium">{val || "—"}</span>
-      ),
+      render: (val, row) => {
+        const serviceName = typeof val === "string" ? val : (typeof row?.service === "string" ? row.service : (typeof row?.title === "string" ? row.title : "—"));
+        return <span className="text-body-sm font-medium">{serviceName}</span>;
+      },
     },
     {
       key: "client_id",
       label: "Client",
       sortable: true,
-      render: (val) => {
+      render: (val, row) => {
         const client = clients.find((c) => c.id === val);
-        return <span className="text-body-sm">{client?.name || "—"}</span>;
+        const name = client?.name || (typeof row?.clients === "object" && row?.clients?.name ? row.clients.name : null) || (typeof row?.client === "string" ? row.client : null);
+        return <span className="text-body-sm">{name || "—"}</span>;
       },
     },
     {
       key: "job_date",
       label: "Date",
       sortable: true,
-      render: (val) => val ? new Date(val).toLocaleDateString() : "—",
+      render: (val, row) => {
+        const dateVal = val || row?.scheduled_at || row?.created_at;
+        return dateVal && typeof dateVal === "string" ? new Date(dateVal).toLocaleDateString() : "—";
+      },
     },
     {
       key: "location",
       label: "Location",
-      render: (val) => <span className="text-body-sm text-text-secondary truncate max-w-[180px] block">{val || "—"}</span>,
+      render: (val, row) => {
+        const loc = typeof val === "string" ? val : (typeof row?.location_address === "string" ? row.location_address : "—");
+        return <span className="text-body-sm text-text-secondary truncate max-w-[180px] block">{loc}</span>;
+      },
     },
     {
       key: "status",
       label: "Status",
       sortable: true,
-      render: (val) => <StatusBadge status={val || "Created"} dot />,
+      render: (val, row) => {
+        const statusStr = typeof val === "string" ? val : (typeof row?.status === "string" ? row.status : "Created");
+        return <StatusBadge status={statusStr} dot />;
+      },
     },
   ];
 
@@ -261,9 +279,38 @@ export default function JobsPage() {
       />
 
       {/* Sub-navigation */}
-      <div className="flex items-center gap-5 border-b border-border">
-        <Link href="/dashboard/jobs" className="tab tab-active">All Jobs</Link>
-        <Link href="/dashboard/jobs/checklists" className="tab">Checklists</Link>
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto scrollbar-none pb-px">
+        <Link
+          href="/dashboard/jobs"
+          className="px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 shrink-0"
+        >
+          <ClipboardList className="w-4 h-4" />
+          <span>All Jobs</span>
+          <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-bold border border-blue-200">
+            {jobs.length}
+          </span>
+        </Link>
+        <Link
+          href="/dashboard/jobs/checklists"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <CheckSquare className="w-4 h-4 text-emerald-500" />
+          <span>Checklists &amp; Templates</span>
+        </Link>
+        <Link
+          href="/dashboard/quality"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <ShieldCheck className="w-4 h-4 text-blue-500" />
+          <span>QA Inspections</span>
+        </Link>
+        <Link
+          href="/dashboard/quality/capa"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <AlertTriangle className="w-4 h-4 text-amber-500" />
+          <span>Six Sigma CAPA</span>
+        </Link>
       </div>
 
       {/* Metrics */}

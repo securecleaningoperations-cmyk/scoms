@@ -597,3 +597,9 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--color-neutral-400);
 }
+
+/* ── Leaflet Dark Map Filter (100% Free, Zero API Key) ─────────────────── */
+.dark-map-tiles {
+  filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(120%);
+}
+

@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { supabase } from '@/lib/supabase';
 import {
   AlertTriangle, Plus, Search, Loader2, X, AlertCircle,
   Save, ChevronRight, CheckCircle2, User, FileText,
-  Thermometer, CheckCircle
+  Thermometer, CheckCircle, ClipboardList, ShieldCheck, Sparkles
 } from 'lucide-react';
 
 interface CapaAction {
@@ -146,6 +147,41 @@ export default function CAPAPage() {
         <button onClick={openCreate} className="cal-btn-primary flex items-center gap-2">
           <Plus className="w-4 h-4" /> New CAPA
         </button>
+      </div>
+
+      {/* Quality Sub-Navigation Tabs */}
+      <div className="flex items-center gap-2 border-b border-slate-200 overflow-x-auto scrollbar-none pb-px">
+        <Link
+          href="/dashboard/quality"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <ClipboardList className="w-4 h-4 text-blue-500" />
+          <span>QA Inspections</span>
+        </Link>
+        <Link
+          href="/dashboard/quality/capa"
+          className="px-4 py-2.5 text-xs sm:text-sm font-bold border-b-2 border-blue-600 text-blue-600 flex items-center gap-2 shrink-0"
+        >
+          <AlertTriangle className="w-4 h-4" />
+          <span>Six Sigma CAPA</span>
+          <span className="text-[10px] font-mono bg-blue-50 text-blue-700 px-1.5 py-0.2 rounded font-bold border border-blue-200">
+            {capas.length}
+          </span>
+        </Link>
+        <Link
+          href="/dashboard/jobs/checklists"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <ShieldCheck className="w-4 h-4 text-emerald-500" />
+          <span>Checklists &amp; Protocols</span>
+        </Link>
+        <Link
+          href="/dashboard/improvement"
+          className="px-4 py-2.5 text-xs sm:text-sm font-semibold text-slate-500 hover:text-slate-900 border-b-2 border-transparent hover:border-slate-300 flex items-center gap-2 transition shrink-0"
+        >
+          <Sparkles className="w-4 h-4 text-purple-500" />
+          <span>Continuous Improvement</span>
+        </Link>
       </div>
 
       {error && (

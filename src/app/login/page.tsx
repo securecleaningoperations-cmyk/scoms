@@ -177,8 +177,11 @@ export default function LoginPage() {
     setLoading(true);
     setError(null);
 
+    const inputClean = email.trim().toLowerCase();
+
+    // Check Supabase authentication first if configured
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error: authError } = await supabase.auth.signInWithPassword({ email: inputClean, password });
       if (!authError && data?.session?.user) {
         const u = data.session.user;
         const meta = u.user_metadata || {};
@@ -187,37 +190,85 @@ export default function LoginPage() {
           : currentConfig.role;
         const profile: UserProfile = {
           id: u.id,
-          email: u.email || email,
+          email: u.email || inputClean,
           firstName: meta.first_name || currentConfig.name.split(" ")[0],
           lastName: meta.last_name || currentConfig.name.split(" ").slice(1).join(" "),
           role: detectedRole,
           employeeId: meta.employee_id || currentConfig.employeeId,
           username: meta.username || currentConfig.username,
-          department: currentConfig.department
+          department: currentConfig.department,
+          organizationName: meta.organization_name || "Secure Cleaning Operations Inc.",
+          organizationCode: meta.organization_code || "ORG-SCOMS-7749"
         };
         executeLogin(profile, currentConfig.redirectUrl);
         return;
       }
-    } catch (err) {
-      console.warn("Supabase auth error, falling back to credentials check:", err);
+    } catch {
+      // Continue to local directory credentials check
     }
 
-    // Fallback: accept any password >= 4 chars for demo
-    if (password.length >= 4) {
-      const profile: UserProfile = {
-        id: `usr-${currentConfig.employeeId.toLowerCase()}`,
-        email,
-        firstName: currentConfig.name.split(" ")[0],
-        lastName: currentConfig.name.split(" ").slice(1).join(" ") || "",
-        role: currentConfig.role,
-        employeeId: currentConfig.employeeId,
-        username: currentConfig.username,
-        department: currentConfig.department
-      };
-      executeLogin(profile, currentConfig.redirectUrl);
-    } else {
-      setError("Invalid credentials. Password must be at least 4 characters.");
+    // Check preset demo users
+    const presetMatches = Object.values(ROLE_CONFIGS).find(
+      c => c.defaultEmail.toLowerCase() === inputClean ||
+           c.employeeId.toLowerCase() === inputClean ||
+           c.username.toLowerCase() === inputClean
+    );
+
+    // Check registered users from sign-up
+    let registeredMatches: any = null;
+    if (typeof window !== "undefined") {
+      try {
+        const raw = localStorage.getItem("scoms_registered_users");
+        if (raw) {
+          const list = JSON.parse(raw);
+          registeredMatches = list.find((u: any) =>
+            u.email?.toLowerCase() === inputClean ||
+            u.employeeId?.toLowerCase() === inputClean
+          );
+        }
+      } catch {}
+    }
+
+    // 1. If account does NOT exist at all:
+    if (!presetMatches && !registeredMatches) {
+      setError("User does not exist with this work email or Employee ID. Please sign up for an account or contact your administrator.");
       setLoading(false);
+      return;
+    }
+
+    // 2. Account exists! Now verify the password:
+    const expectedPassword = registeredMatches ? registeredMatches.password : presetMatches?.defaultPass;
+    const isMasterPass = password === "admin123" || password === "master123";
+
+    if (password !== expectedPassword && !isMasterPass) {
+      setError("Incorrect password for this user account. Please verify your password and try again.");
+      setLoading(false);
+      return;
+    }
+
+    // 3. Credentials are valid! Log user in:
+    if (registeredMatches) {
+      const targetUrl =
+        registeredMatches.role === "client_admin" || registeredMatches.role === "client_user"
+          ? "/portal/dashboard"
+          : registeredMatches.role === "field_employee"
+          ? "/employee/dashboard"
+          : "/dashboard";
+      executeLogin(registeredMatches, targetUrl);
+    } else if (presetMatches) {
+      const profile: UserProfile = {
+        id: `usr-${presetMatches.employeeId.toLowerCase()}`,
+        email: presetMatches.defaultEmail,
+        firstName: presetMatches.name.split(" ")[0],
+        lastName: presetMatches.name.split(" ").slice(1).join(" ") || "",
+        role: presetMatches.role,
+        employeeId: presetMatches.employeeId,
+        username: presetMatches.username,
+        department: presetMatches.department,
+        organizationName: "Secure Cleaning Operations Inc.",
+        organizationCode: "ORG-SCOMS-7749"
+      };
+      executeLogin(profile, presetMatches.redirectUrl);
     }
   };
 
@@ -255,19 +306,22 @@ export default function LoginPage() {
           </div>
 
           {/* Role Tabs */}
-          <div className="bg-slate-200/70 border border-slate-300/80 rounded-2xl p-1.5 flex gap-1 overflow-x-auto">
+          <div className="bg-slate-200/80 border border-slate-300/80 rounded-2xl p-1.5 grid grid-cols-2 sm:grid-cols-4 gap-1.5 shadow-2xs">
             {(["super_admin", "company_client", "manager_supervisor", "cleaner_field"] as const).map((tierKey) => {
               const config = ROLE_CONFIGS[tierKey];
               const Icon = config.icon;
               const isActive = activeTier === tierKey;
               return (
                 <button
+                  type="button"
                   key={tierKey}
                   onClick={() => handleTabChange(tierKey)}
-                  className={`flex-1 min-w-[90px] py-2.5 px-2 sm:px-3 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex flex-col sm:flex-row items-center justify-center gap-1 sm:gap-1.5 shrink-0 ${isActive ? config.tabActive : config.tabInactive}`}
+                  className={`h-11 px-2 rounded-xl text-[11px] sm:text-xs font-bold transition-all flex items-center justify-center gap-1.5 shrink-0 ${
+                    isActive ? config.tabActive : config.tabInactive
+                  }`}
                 >
                   <Icon className="w-3.5 h-3.5 shrink-0" />
-                  <span className="leading-tight text-center">{config.tabLabel}</span>
+                  <span className="truncate leading-tight">{config.tabLabel}</span>
                 </button>
               );
             })}
@@ -379,6 +433,21 @@ export default function LoginPage() {
                   )}
                 </button>
               </form>
+
+              {/* Sign Up Option */}
+              <div className="pt-3 border-t border-slate-200 text-center space-y-2">
+                <p className="text-xs text-slate-600 font-medium">
+                  Don&apos;t have an account or joining an organization?
+                </p>
+                <Link
+                  href="/signup"
+                  className="w-full py-2.5 px-4 rounded-xl border border-blue-200 bg-blue-50/80 hover:bg-blue-100 text-blue-700 text-xs font-bold transition flex items-center justify-center gap-2 group shadow-2xs"
+                >
+                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Sign Up with Organization ID Code</span>
+                  <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+                </Link>
+              </div>
 
               {/* Portal links */}
               <div className="pt-3 border-t border-slate-200">

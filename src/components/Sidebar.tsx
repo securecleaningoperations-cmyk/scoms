@@ -187,6 +187,16 @@ const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
+    id: "Communications",
+    label: "Communications & Chat",
+    icon: MessageSquare,
+    children: [
+      { label: "Team Chat", href: "/dashboard/communications/chat", badge: "2" },
+      { label: "Video Meetings", href: "/dashboard/communications/meetings" },
+      { label: "Timeline", href: "/dashboard/communications" },
+    ],
+  },
+  {
     id: "Workforce",
     label: "Workforce",
     icon: Users,
@@ -265,16 +275,6 @@ const NAV_GROUPS: NavGroup[] = [
     children: [
       { label: "Document Center", href: "/dashboard/documents" },
       { label: "SOPs", href: "/dashboard/sops" },
-    ],
-  },
-  {
-    id: "Communications",
-    label: "Communications",
-    icon: MessageSquare,
-    children: [
-      { label: "Team Chat", href: "/dashboard/communications/chat", badge: "2" },
-      { label: "Meetings", href: "/dashboard/communications/meetings" },
-      { label: "Timeline", href: "/dashboard/communications" },
     ],
   },
   {
@@ -506,6 +506,7 @@ export function Sidebar({
           {/* Quick Shortcuts */}
           <div className="mt-1.5 flex items-center gap-1 overflow-x-auto scrollbar-none py-0.5">
             {[
+              { label: "💬 Team Chat", href: "/dashboard/communications/chat" },
               { label: "Dispatch", href: "/dashboard/scheduling/dispatch" },
               { label: "GL Ledger", href: "/dashboard/gl" },
               { label: "Documents", href: "/dashboard/documents" },
@@ -526,6 +527,65 @@ export function Sidebar({
 
       {/* Navigation Groups List */}
       <nav className="flex-1 overflow-y-auto scrollbar-thin py-2 px-2 space-y-0.5">
+        {/* Dedicated High-Visibility Team Chat Launcher */}
+        <div className="mb-2">
+          {collapsed ? (
+            <Link
+              href="/dashboard/communications/chat"
+              className={clsx(
+                "flex items-center justify-center w-full h-9 rounded-md transition-colors relative",
+                pathname.startsWith("/dashboard/communications/chat")
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "text-blue-600 bg-blue-50 hover:bg-blue-100"
+              )}
+              title="Team Chat"
+            >
+              <MessageSquare className="w-4 h-4" />
+              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-emerald-500 ring-2 ring-white" />
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/communications/chat"
+              onClick={onNavigate}
+              className={clsx(
+                "flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all border shadow-2xs group",
+                pathname.startsWith("/dashboard/communications/chat")
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-white hover:bg-blue-50/70 text-slate-800 hover:text-blue-700 border-slate-200 hover:border-blue-300"
+              )}
+            >
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="relative shrink-0">
+                  <div className={clsx(
+                    "w-6 h-6 rounded-lg flex items-center justify-center transition-colors",
+                    pathname.startsWith("/dashboard/communications/chat") ? "bg-white/20 text-white" : "bg-blue-100 text-blue-700"
+                  )}>
+                    <MessageSquare className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-emerald-500 ring-1 ring-white" />
+                </div>
+                <div className="truncate">
+                  <span className="block leading-tight">Team Live Chat</span>
+                  <span className={clsx(
+                    "text-[10px] font-normal block truncate",
+                    pathname.startsWith("/dashboard/communications/chat") ? "text-blue-100" : "text-slate-500"
+                  )}>
+                    Operations & field crew
+                  </span>
+                </div>
+              </div>
+              <span className={clsx(
+                "text-[10px] font-mono font-bold px-1.5 py-0.5 rounded-full shrink-0",
+                pathname.startsWith("/dashboard/communications/chat")
+                  ? "bg-white/20 text-white"
+                  : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+              )}>
+                2 new
+              </span>
+            </Link>
+          )}
+        </div>
+
         {filteredGroups.map((group) => {
           const isExpanded = expandedGroups.has(group.id);
           const hasActiveChild = group.children.some((c) => isChildActive(c.href));

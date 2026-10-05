@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabase";
+import { InviteUserModal } from "@/components/InviteUserModal";
 
 interface OnboardingMilestone {
   id: string;
@@ -27,6 +28,7 @@ export default function OnboardingCenter() {
   const [employees, setEmployees] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [inviteUserOpen, setInviteUserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [empForm, setEmpForm] = useState({ first_name: '', last_name: '', email: '', role: 'field_employee', pay_type: 'hourly', pay_rate: '' });
   const [newCredentials, setNewCredentials] = useState<{email: string, password: string} | null>(null);
@@ -230,6 +232,40 @@ export default function OnboardingCenter() {
             <span>{completedCount} of {milestones.length} Milestones Configured</span>
             <span className="text-emerald-700 font-bold">{progressPct === 100 ? "Ready for Audits" : "In Progress"}</span>
           </div>
+        </div>
+      </div>
+
+      {/* ── Organization Code & Email Invites Banner ─────────────────── */}
+      <div className="bg-gradient-to-r from-blue-50 via-indigo-50/60 to-white rounded-2xl p-5 border border-blue-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-2xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-md shadow-blue-600/20">
+            <Building2 className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
+                Active Organization
+              </span>
+              <span className="text-xs text-slate-500 font-mono">SCOMS Enterprise Multi-Tenant</span>
+            </div>
+            <p className="text-base font-extrabold text-slate-900 leading-tight mt-0.5">Secure Cleaning Operations Inc.</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="text-xs text-slate-600 font-medium">Organization ID Code:</span>
+              <span className="font-mono text-xs font-black bg-white px-2.5 py-0.5 rounded-md border border-blue-300 text-blue-900 shadow-2xs">
+                ORG-SCOMS-7749
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={() => setInviteUserOpen(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-bold rounded-xl transition shadow-md shadow-blue-600/20"
+          >
+            <UserPlus className="w-4 h-4" />
+            <span>Invite Users via Email</span>
+          </button>
         </div>
       </div>
 
@@ -814,6 +850,11 @@ export default function OnboardingCenter() {
         </div>
       )}
 
+      {/* Admin Invite User Modal */}
+      <InviteUserModal
+        isOpen={inviteUserOpen}
+        onClose={() => setInviteUserOpen(false)}
+      />
     </div>
   );
 }
