@@ -1,0 +1,100 @@
+
+> scoms@0.1.0 build
+> next build
+
+▲ Next.js 16.3.4 (Turbopack)
+- Environments: .env.local
+✓ Running next.config.ts took 6.6s
+⨯ Another next build process is already running.
+
+  This could be:
+  - A next build still in progress
+  - ✓ Finished writing to filesystem cache in 12.2s
+✓ Finished filesystem cache database compaction in 14.3s
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./node_modules/leaflet/dist/leaflet.css
+Error: Error evaluating Node.js code
+Error: Cannot find module '/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node'
+Require stack:
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/node/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/postcss/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[root-of-the-server]__1kki86f._.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[turbopack]_runtime.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/pool_entry-[turbopack-node]_transforms_postcss_ts_0tp-k2v._.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)]
+    [at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)]
+    [at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)]
+    [at Module._load (node:internal/modules/cjs/loader:1294:5)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)]
+    [at Module.require (node:internal/modules/cjs/loader:1617:12)]
+    [at require (node:internal/modules/helpers:153:16)]
+    [at Object.<anonymous> (/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js:27:16)]
+    [at Module._compile (node:internal/modules/cjs/loader:1871:14)]
+
+Import trace:
+  Client Component Browser:
+    ./node_modules/leaflet/dist/leaflet.css [Client Component Browser]
+    ./src/components/MapComponent.tsx [Client Component Browser]
+    ./src/app/(dashboard)/dashboard/scheduling/routes/page.tsx [Client Component Browser]
+    ./src/app/(dashboard)/dashboard/scheduling/routes/page.tsx [Server Component]
+
+
+./src/app/globals.css
+Error: Error evaluating Node.js code
+Error: Cannot find module '/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node'
+Require stack:
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/node/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/postcss/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[root-of-the-server]__1kki86f._.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[turbopack]_runtime.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/pool_entry-[turbopack-node]_transforms_postcss_ts_0tp-k2v._.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)]
+    [at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)]
+    [at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)]
+    [at Module._load (node:internal/modules/cjs/loader:1294:5)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)]
+    [at Module.require (node:internal/modules/cjs/loader:1617:12)]
+    [at require (node:internal/modules/helpers:153:16)]
+    [at Object.<anonymous> (/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js:27:16)]
+    [at Module._compile (node:internal/modules/cjs/loader:1871:14)]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/globals.css [Client Component Browser]
+    ./src/app/layout.tsx [Server Component]
+
+
+./src/app/sco/sco.css
+Error: Error evaluating Node.js code
+Error: Cannot find module '/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss-win32-x64-msvc/lightningcss.win32-x64-msvc.node'
+Require stack:
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/node/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/@tailwindcss/postcss/dist/index.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[root-of-the-server]__1kki86f._.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/[turbopack]_runtime.js
+- /run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/.next/build/chunks/pool_entry-[turbopack-node]_transforms_postcss_ts_0tp-k2v._.js
+    [at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)]
+    [at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)]
+    [at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)]
+    [at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)]
+    [at Module._load (node:internal/modules/cjs/loader:1294:5)]
+    [at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)]
+    [at Module.require (node:internal/modules/cjs/loader:1617:12)]
+    [at require (node:internal/modules/helpers:153:16)]
+    [at Object.<anonymous> (/run/media/barath07112004/Barath/Fiverr/Projects done Fiverr/davida client scoms/scoms/node_modules/lightningcss/node/index.js:27:16)]
+    [at Module._compile (node:internal/modules/cjs/loader:1871:14)]
+
+Import trace:
+  Client Component Browser:
+    ./src/app/sco/sco.css [Client Component Browser]
+    ./src/app/sco/layout.tsx [Server Component]
+
+
+    at ignore-listed frames
