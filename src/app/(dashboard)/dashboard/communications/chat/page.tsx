@@ -7,6 +7,7 @@ import {
   ChevronLeft, Paperclip, Phone, ArrowLeft
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/AuthProvider";
+import { DEMO_ACCOUNTS } from "@/lib/auth/service";
 import { supabase } from "@/lib/supabase";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -130,10 +131,31 @@ export default function EmployeeChatPage() {
     } catch (err) {
       console.warn("Could not load employees from Supabase:", err);
     }
-    // No real employees yet — start with empty state
-    setEmployees([]);
-    setConversations([]);
-  }, []);
+    // Fallback directory: demo personas + anyone registered locally, so the chat
+    // always has team members to talk to (even without an employees table).
+    const roster: Employee[] = [];
+    for (const d of DEMO_ACCOUNTS) {
+      roster.push({
+        id: d.email, name: d.name, username: `@${d.name.toLowerCase().replace(/\s+/g, ".")}`,
+        employeeId: d.role.replace(/_/g, "-").toUpperCase(), role: d.role.replace(/_/g, " "),
+        department: "Operations", avatar: avatarInitials(d.name), online: true, lastSeen: "Online",
+      });
+    }
+    try {
+      const reg = JSON.parse(localStorage.getItem("scoms_registered_users_v2") || "[]");
+      for (const r of reg) {
+        const nm = [r.firstName, r.lastName].filter(Boolean).join(" ") || r.email;
+        if (roster.some((e) => e.id === r.email)) continue;
+        roster.push({
+          id: r.email, name: nm, username: r.username || `@${nm.toLowerCase().replace(/\s+/g, ".")}`,
+          employeeId: r.employeeId || "TEAM", role: (r.role || "staff").replace(/_/g, " "),
+          department: r.department || "Operations", avatar: avatarInitials(nm), online: false, lastSeen: "Offline",
+        });
+      }
+    } catch { /* optional */ }
+    setEmployees(roster);
+    buildInitialConversations(roster);
+  }, [user]);
 
   useEffect(() => {
     // Try to load from localStorage first for instant display
@@ -150,8 +172,8 @@ export default function EmployeeChatPage() {
     const currentEmpId = user?.employeeId || "EMP-0001";
 
     const convs: Conversation[] = emps
-      .filter(e => e.employeeId !== currentEmpId)
-      .slice(0, 10)
+      .filter(e => e.employeeId !== currentEmpId && e.id !== user?.email && e.name !== `${user?.firstName || ""} ${user?.lastName || ""}`.trim())
+      .slice(0, 12)
       .map(emp => ({
         id: `conv-${emp.id}`,
         type: "direct" as const,
@@ -171,8 +193,19 @@ export default function EmployeeChatPage() {
         messages: [],
       }));
 
-    setConversations(convs);
-    if (convs.length > 0) setActiveConvId(convs[0].id);
+    // Merge with anything already stored so reloads never lose messages or groups.
+    setConversations(prev => {
+      const prevById = new Map(prev.map(c => [c.id, c]));
+      const merged = convs.map(cv => {
+        const old = prevById.get(cv.id);
+        return old && old.messages.length > 0
+          ? { ...cv, messages: old.messages, lastMessage: old.lastMessage, unreadCount: old.unreadCount }
+          : cv;
+      });
+      const groups = prev.filter(p => p.type === "group" && !convs.some(c => c.id === p.id));
+      return [...merged, ...groups];
+    });
+    setActiveConvId(prev => prev ?? convs[0]?.id ?? null);
   };
 
   // Persist to localStorage

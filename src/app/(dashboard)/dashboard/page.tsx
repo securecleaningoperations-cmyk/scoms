@@ -324,51 +324,25 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-8 max-w-[1400px] mx-auto space-y-6 font-sans pb-24">
-      {/* ── Executive Command Banner (Clean White Theme) ───────────────── */}
-      <div className="bg-white rounded-2xl p-6 sm:p-7 text-slate-900 shadow-sm border border-slate-200">
+      {/* ── Greeting ─────────────────────────────────────────────────────── */}
+      <div className="bg-white rounded-xl p-6 sm:p-7 text-slate-900 border border-slate-200">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-50 text-blue-700 border border-blue-200">
-                Executive Command Center
-              </span>
-              <span className="flex items-center gap-1.5 text-xs text-emerald-600 font-bold">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> All 14 Operational Engines Active
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+          <div className="space-y-1">
+            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900">
               Welcome back, {user?.firstName || "David"} {user?.lastName || "Vance"}
             </h1>
-            <p className="text-slate-500 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Secure Cleaning Operations Inc. &bull; Enterprise Platform v4.0 &bull; Release 6.1
+            <p className="text-slate-500 text-sm">
+              Secure Cleaning Operations Inc. &bull; Enterprise Platform v4.0
             </p>
           </div>
-
-          {/* Enterprise Onboarding & Readiness Status Hub */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-200/90 space-y-2.5 flex-shrink-0 min-w-[280px]">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-slate-600 font-bold flex items-center gap-1.5">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                Enterprise Readiness
-              </span>
-              <span className="font-mono text-blue-700 font-bold text-xs bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-                83% Setup
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div className="bg-blue-600 h-2 rounded-full transition-all duration-500" style={{ width: "83%" }}></div>
-            </div>
-            <div className="flex items-center justify-between pt-1">
-              <span className="text-[11px] text-slate-500">5 of 6 modules configured</span>
-              <Link
-                href="/dashboard/onboarding"
-                className="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1 hover:underline"
-              >
-                <span>Onboarding Hub</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-          </div>
+          <Link
+            href="/dashboard/onboarding"
+            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg border border-slate-200 text-sm font-semibold text-slate-700 hover:text-blue-700 hover:border-blue-300 transition-colors self-start lg:self-auto"
+          >
+            <ShieldCheck className="w-4 h-4 text-blue-600" />
+            <span>Finish platform setup</span>
+            <ChevronRight className="w-4 h-4" />
+          </Link>
         </div>
       </div>
 
