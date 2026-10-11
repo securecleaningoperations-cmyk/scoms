@@ -9,6 +9,7 @@ import {
   ArrowLeft, CheckCircle2, ShieldCheck, QrCode
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { clearSession } from "@/lib/auth/service";
 
 const NAV = [
   { href: "/employee/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -33,7 +34,8 @@ export default function EmployeeSidebar({ employeeName, role }: { employeeName?:
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/employee/login";
+    clearSession();
+    window.location.href = "/employee/login?signedout=1";
   };
 
   return (

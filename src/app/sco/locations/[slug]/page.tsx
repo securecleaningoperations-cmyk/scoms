@@ -17,7 +17,7 @@ export default async function LocationPage({ params }: { params: Promise<{ slug:
   if (!r) notFound();
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Locations", href: "/sco/locations" }, { label: r.name }]} eyebrow="Service area" title={<>Facility services in <em>{r.name}.</em></>} lead={`Commercial cleaning and facility services for organizations in ${r.name}. Contact us to confirm availability for your location.`} scene="government"
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Locations", href: "/sco/locations" }, { label: r.name }]} eyebrow="Service area" title={<>Facility services in <em>{r.name}.</em></>} lead={`Commercial cleaning and facility services for organizations in ${r.name}. Contact us to confirm availability for your location.`} scene="government"
         cta={{ href: `/sco/request/consultation?location=${encodeURIComponent(r.name)}`, label: "Request Service in " + r.short }} />
       <Reveal className="section" as="section">
         <div className="wrap two">

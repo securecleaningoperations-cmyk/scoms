@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ kind: string 
   if (!k) notFound();
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: k.title }]} eyebrow="Get started" title={k.h} lead={k.lead} scene={k.scene} />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: k.title }]} eyebrow="Get started" title={k.h} lead={k.lead} scene={k.scene} />
       <Reveal className="section" as="section"><div className="wrap" data-in>
         <RequestPage id={kind} title={k.title} steps={k.steps} submitLabel={k.submit} successTitle={k.ok} successBody={k.okBody} next={k.next} />
       </div></Reveal>

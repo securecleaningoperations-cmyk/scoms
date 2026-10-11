@@ -23,8 +23,8 @@ export function Services() {
   });
   return (
     <section ref={ref} className="svc" aria-labelledby="svc-h">
-      <div className="svc-pin" style={{ paddingBlock: "clamp(72px, 9vw, 130px) 56px", minHeight: "100svh", display: "flex", flexDirection: "column", justifyContent: "center" }}>
-        <div className="wrap svc-head" style={{ marginBottom: 44 }}>
+      <div className="svc-pin" style={{ paddingBlock: "calc(var(--hdr) + 14px) 24px", height: "100svh", minHeight: 600, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div className="wrap svc-head" style={{ marginBottom: 24 }}>
           <div>
             <p className="eyebrow" data-in>Services</p>
             <h2 id="svc-h" className="h-lg" style={{ marginTop: 18, maxWidth: "15ch" }} data-in>Thirteen service lines. <em>One standard.</em></h2>

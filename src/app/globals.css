@@ -251,42 +251,6 @@ body {
 .bg-bg-gradient {
   background: linear-gradient(135deg, #e0e7ff 0%, #ede9fe 50%, #f3e8ff 100%);
 }
-/* ── Buttons (Uniform & Glassmorphism) ────────────────────────────────── */
-
-@layer components {
-  .btn {
-    @apply inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-all duration-300 ease-out border focus:outline-none focus:ring-2 focus:ring-blue-500/50 shadow-sm active:scale-[0.98];
-  }
-  
-  .btn-sm {
-    @apply px-3 py-1.5 text-xs;
-  }
-  
-  .btn-md {
-    @apply px-4 py-2 text-sm;
-  }
-
-  .btn-lg {
-    @apply px-5 py-2.5 text-base;
-  }
-
-  .btn-primary {
-    @apply bg-blue-600/90 hover:bg-blue-600 text-white border-blue-500/50 shadow-[0_0_15px_rgba(37,99,235,0.3)] hover:shadow-[0_0_20px_rgba(37,99,235,0.5)] backdrop-blur-md;
-  }
-
-  .btn-secondary {
-    @apply bg-surface hover:bg-surface-hover text-text-primary border-border hover:border-border-strong backdrop-blur-md;
-  }
-
-  .btn-danger {
-    @apply bg-rose-500/90 hover:bg-rose-500 text-white border-rose-500/50 shadow-[0_0_15px_rgba(244,63,94,0.3)] hover:shadow-[0_0_20px_rgba(244,63,94,0.5)] backdrop-blur-md;
-  }
-
-  .btn-ghost {
-    @apply bg-transparent hover:bg-surface-hover text-text-primary border-transparent shadow-none hover:shadow-sm;
-  }
-}
-
 .text-mist-gray { color: #94a3b8 !important; }
 .text-signal-blue { color: #2563eb !important; }
 .bg-signal-blue { background-color: #2563eb !important; }
@@ -308,77 +272,66 @@ body {
 .status-escalated    { background: #fef3c7; color: #92400e; }
 .status-archived     { background: var(--color-neutral-100); color: var(--color-neutral-400); }
 
-/* ── Button Base ────────────────────────────────────────────────────────── */
+/* ── Button System (single source of truth) ─────────────────────────────────
+   Fixed heights keep every button on a 32 / 38 / 44px rhythm regardless of icon or text.
+   Variants: primary · secondary · ghost · danger · success · link
+   Modifiers: btn-sm · btn-lg · btn-block · btn-icon · is-loading
+   (Scoped away from the public site, which has its own cinematic .btn under `.sco`.)
+   ─────────────────────────────────────────────────────────────────────────── */
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  font-weight: 500;
-  font-size: var(--text-body-sm);
-  line-height: 1;
-  border-radius: var(--radius-md);
-  padding: 7px 14px;
-  transition: all 0.15s ease;
-  cursor: pointer;
-  white-space: nowrap;
-  border: 1px solid transparent;
+.btn:where(:not(.sco *)) {
+  --btn-h: 38px; --btn-px: 14px; --btn-fs: 13px; --btn-gap: 8px; --btn-r: 8px;
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--btn-gap);
+  height: var(--btn-h); min-height: var(--btn-h); padding: 0 var(--btn-px);
+  font-size: var(--btn-fs); font-weight: 600; line-height: 1; letter-spacing: .005em;
+  border-radius: var(--btn-r); border: 1px solid transparent; white-space: nowrap;
+  cursor: pointer; user-select: none; position: relative; text-decoration: none;
+  transition: background-color .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease, transform .1s ease;
 }
-.btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.btn:where(:not(.sco *)) svg { width: 1.15em; height: 1.15em; flex: none; }
+.btn:where(:not(.sco *)):focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(37, 99, 235, .28); }
+.btn:where(:not(.sco *)):active:not(:disabled) { transform: translateY(1px); }
+.btn:where(:not(.sco *)):disabled, .btn:where(:not(.sco *))[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 
-.btn-primary {
-  background: var(--color-primary-600);
-  color: var(--color-text-inverse);
-  border-color: var(--color-primary-600);
-}
-.btn-primary:hover:not(:disabled) {
-  background: var(--color-primary-700);
-  border-color: var(--color-primary-700);
-}
+.btn-sm { --btn-h: 32px; --btn-px: 10px; --btn-fs: 12px; --btn-gap: 6px; --btn-r: 7px; }
+.btn-md { --btn-h: 38px; }
+.btn-lg { --btn-h: 44px; --btn-px: 20px; --btn-fs: 14px; --btn-r: 10px; }
+.btn-block { width: 100%; }
+.btn-icon { padding: 0 !important; width: var(--btn-h); }
 
-.btn-secondary {
-  background: var(--color-surface);
-  color: var(--color-text-primary);
-  border-color: var(--color-border);
-}
-.btn-secondary:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  border-color: var(--color-border-strong);
-}
+.btn-primary { background: var(--color-primary-600); color: #fff; border-color: var(--color-primary-600); box-shadow: 0 1px 2px rgba(15, 23, 42, .12); }
+.btn-primary:hover:not(:disabled) { background: var(--color-primary-700); border-color: var(--color-primary-700); }
 
-.btn-ghost {
-  background: transparent;
-  color: var(--color-text-secondary);
-}
-.btn-ghost:hover:not(:disabled) {
-  background: var(--color-surface-hover);
-  color: var(--color-text-primary);
-}
+.btn-secondary { background: var(--color-surface); color: var(--color-text-primary); border-color: var(--color-border); box-shadow: 0 1px 2px rgba(15, 23, 42, .05); }
+.btn-secondary:hover:not(:disabled) { background: var(--color-surface-hover); border-color: var(--color-border-strong); }
 
-.btn-danger {
-  background: var(--color-danger-600);
-  color: var(--color-text-inverse);
-  border-color: var(--color-danger-600);
-}
-.btn-danger:hover:not(:disabled) {
-  background: var(--color-danger-700);
-  border-color: var(--color-danger-700);
-}
+.btn-ghost { background: transparent; color: var(--color-text-secondary); }
+.btn-ghost:hover:not(:disabled) { background: var(--color-bg-inset); color: var(--color-text-primary); }
 
-.btn-sm {
-  font-size: var(--text-label);
-  padding: 5px 10px;
-  gap: 4px;
-}
+.btn-danger { background: var(--color-danger-600); color: #fff; border-color: var(--color-danger-600); }
+.btn-danger:hover:not(:disabled) { background: var(--color-danger-700); border-color: var(--color-danger-700); }
 
-.btn-lg {
-  font-size: var(--text-body);
-  padding: 10px 20px;
-}
+.btn-success { background: var(--color-success-600); color: #fff; border-color: var(--color-success-600); }
+.btn-success:hover:not(:disabled) { background: var(--color-success-700); border-color: var(--color-success-700); }
+
+.btn-link { background: none; border-color: transparent; color: var(--color-text-link); padding-inline: 2px; height: auto; min-height: 0; }
+.btn-link:hover:not(:disabled) { text-decoration: underline; }
+
+.btn.is-loading { color: transparent !important; pointer-events: none; }
+.btn.is-loading::after { content: ""; position: absolute; width: 16px; height: 16px; border-radius: 50%; border: 2px solid currentColor; border-color: rgba(255,255,255,.4); border-top-color: #fff; animation: btn-spin .7s linear infinite; }
+.btn-secondary.is-loading::after, .btn-ghost.is-loading::after { border-color: rgba(15,23,42,.18); border-top-color: var(--color-primary-600); }
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* ── Auth surfaces ───────────────────────────────────────────────────────── */
+.auth-label { display: block; font-size: 12px; font-weight: 600; color: var(--color-text-primary); margin-bottom: 6px; }
+.auth-input { width: 100%; height: 44px; padding: 0 14px; font-size: 14px; color: var(--color-text-primary); background: #fff; border: 1px solid var(--color-border-strong); border-radius: 10px; outline: none; transition: border-color .15s, box-shadow .15s; }
+.auth-input::placeholder { color: var(--color-text-muted); }
+.auth-input:focus { border-color: var(--color-primary-600); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.auth-input[aria-invalid="true"] { border-color: var(--color-danger-500); }
+.auth-input[aria-invalid="true"]:focus { box-shadow: 0 0 0 3px rgba(239, 68, 68, .15); }
+.auth-input.has-icon { padding-left: 40px; } .auth-input.has-trail { padding-right: 44px; }
+.auth-hint { font-size: 12px; color: var(--color-text-secondary); margin-top: 6px; }
+.auth-err { font-size: 12px; color: var(--color-danger-600); margin-top: 6px; }
 
 /* ── Input Base ─────────────────────────────────────────────────────────── */
 
@@ -603,3 +556,20 @@ body {
   filter: invert(100%) hue-rotate(180deg) brightness(85%) contrast(120%);
 }
 
+
+/* ══ Clean enterprise normalisation (unlayered so it wins over utilities) ══════
+   Standard primary palette: blue #2563eb actions, slate neutrals, green/amber/red status only.
+   Flattens oversized radii, glow shadows, blur and decorative gradients across app screens. */
+body { background-color: #f8fafc; }
+.rounded-3xl { border-radius: 10px !important; }
+.rounded-2xl { border-radius: 8px !important; }
+.rounded-xl  { border-radius: 6px !important; }
+.shadow-2xl, .shadow-xl, .shadow-overlay { box-shadow: 0 8px 24px -8px rgba(15,23,42,.18) !important; }
+.shadow-lg, .shadow-md { box-shadow: 0 1px 3px rgba(15,23,42,.08), 0 1px 2px rgba(15,23,42,.05) !important; }
+[class*="shadow-blue-"], [class*="shadow-emerald-"], [class*="shadow-rose-"], [class*="shadow-indigo-"], [class*="shadow-purple-"] { --tw-shadow-color: transparent !important; box-shadow: 0 1px 2px rgba(15,23,42,.08) !important; }
+[class*="backdrop-blur"] { -webkit-backdrop-filter: none !important; backdrop-filter: none !important; }
+.animate-ping { animation: none !important; }
+.text-purple-500, .text-purple-600, .text-indigo-500, .text-indigo-600, .text-violet-500, .text-violet-600, .text-fuchsia-500, .text-pink-500 { color: #2563eb !important; }
+.bg-purple-50, .bg-indigo-50, .bg-violet-50, .bg-fuchsia-50, .bg-pink-50 { background-color: #eff6ff !important; }
+.bg-purple-600, .bg-indigo-600, .bg-violet-600, .bg-purple-500, .bg-indigo-500 { background-color: #2563eb !important; }
+.text-purple-700, .text-indigo-700, .text-violet-700 { color: #1d4ed8 !important; }

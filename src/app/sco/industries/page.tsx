@@ -8,7 +8,7 @@ export const metadata = { title: "Industries" };
 export default function Industries() {
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Industries" }]} eyebrow="Industries" title={<>One identity. <em>Many environments.</em></>} lead="The atmosphere changes with the facility. The standard does not." scene="healthcare" />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Industries" }]} eyebrow="Industries" title={<>One identity. <em>Many environments.</em></>} lead="The atmosphere changes with the facility. The standard does not." scene="healthcare" />
       <Reveal className="section" as="section">
         <div className="wrap card-grid">
           {industries.map((i) => (

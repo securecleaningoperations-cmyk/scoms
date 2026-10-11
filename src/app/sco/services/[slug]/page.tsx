@@ -23,7 +23,7 @@ export default async function ServicePage({ params }: { params: Promise<{ slug: 
 
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Services", href: "/sco/services" }, { label: s.title }]} eyebrow={actionLabel[s.action]} title={s.title} lead={s.short} scene={s.scene}
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Services", href: "/sco/services" }, { label: s.title }]} eyebrow={actionLabel[s.action]} title={s.title} lead={s.short} scene={s.scene}
         cta={{ href: `/sco/request/consultation?service=${s.slug}`, label: "Request a Consultation" }} cta2={{ href: "/sco/find-services", label: "Find Your Service Area" }} />
 
       <Reveal className="section" as="section">

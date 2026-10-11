@@ -5,12 +5,13 @@ import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Search, Menu, X, ArrowUpRight } from "lucide-react";
 import gsap from "gsap";
+import { setupGsap } from "./motion";
 import Logo from "./Logo";
 import Environment from "./Environment";
 import { nav } from "./nav-data";
 import { searchIndex, services, industries, regions } from "@/lib/sco/content";
 
-function Header({ onSearch, lang, setLang }: { onSearch: () => void; lang: "EN" | "ES"; setLang: (l: "EN" | "ES") => void }) {
+function Header({ onSearch }: { onSearch: () => void }) {
   const [solid, setSolid] = useState(false);
   const [hide, setHide] = useState(false);
   const [open, setOpen] = useState<string | null>(null);
@@ -46,7 +47,7 @@ function Header({ onSearch, lang, setLang }: { onSearch: () => void; lang: "EN" 
     <>
       <header className={`hdr ${solid || open || mobile ? "solid" : ""} ${open || mobile ? "open" : ""} ${hide ? "hide" : ""}`} onMouseLeave={leave} onMouseEnter={hold}>
         <div className="wrap hdr-in">
-          <Link href="/sco" className="logo" aria-label="Secure Cleaning Operations home"><Logo /></Link>
+          <Link href="/" className="logo" aria-label="Secure Cleaning Operations home"><Logo /></Link>
           <nav aria-label="Primary" className="nav-wrap" style={{ marginLeft: "auto" }}>
             <ul className="nav" style={{ padding: 0, margin: 0 }}>
               {nav.map((n) => (
@@ -59,12 +60,9 @@ function Header({ onSearch, lang, setLang }: { onSearch: () => void; lang: "EN" 
             </ul>
           </nav>
           <div className="hdr-actions" style={{ marginLeft: 0 }}>
-            <button className="lang" aria-label="Switch language" onClick={() => setLang(lang === "EN" ? "ES" : "EN")}>
-              <b>{lang === "EN" ? "English" : "Español"}</b> <span>|</span> <span>{lang === "EN" ? "ES" : "EN"}</span>
-            </button>
             <button className="icon-btn" aria-label="Search" onClick={onSearch}><Search size={19} /></button>
-            <Link href="/login" className="lang" style={{ opacity: .8 }}>Clients</Link>
-            <Link href="/login" className="lang" style={{ opacity: .8 }}>Employees</Link>
+            <Link href="/portal/login" className="lang" style={{ opacity: .8 }}>Client Portal</Link>
+            <Link href="/login" className="lang" style={{ opacity: .8 }}>Sign in</Link>
             <Link href="/sco/request/consultation" className="btn cta-desktop" data-cursor="">Request a Consultation <span className="arr">→</span></Link>
             <button className="icon-btn burger" aria-label={mobile ? "Close menu" : "Open menu"} aria-expanded={mobile} onClick={() => setMobile(!mobile)}>{mobile ? <X size={22} /> : <Menu size={22} />}</button>
           </div>
@@ -99,9 +97,9 @@ function Header({ onSearch, lang, setLang }: { onSearch: () => void; lang: "EN" 
         ))}
         <div className="row">
           <Link href="/sco/request/consultation" className="btn light" tabIndex={mobile ? 0 : -1}>Request a Consultation →</Link>
-          <Link href="/login" className="btn ghost" tabIndex={mobile ? 0 : -1}>Clients</Link>
-          <Link href="/login" className="btn ghost" tabIndex={mobile ? 0 : -1}>Employees</Link>
-          <button className="btn ghost" onClick={() => setLang(lang === "EN" ? "ES" : "EN")}>{lang === "EN" ? "Español" : "English"}</button>
+          <Link href="/portal/login" className="btn ghost" tabIndex={mobile ? 0 : -1}>Client Portal</Link>
+          <Link href="/employee/login" className="btn ghost" tabIndex={mobile ? 0 : -1}>Field Team</Link>
+          <Link href="/login" className="btn ghost" tabIndex={mobile ? 0 : -1}>Staff sign in</Link>
         </div>
       </div>
     </>
@@ -182,7 +180,7 @@ function Footer() {
           <div><h5>Government</h5><ul>{[["Government Services", "/sco/government"], ["Procurement", "/sco/government/procurement"], ["Capability Information", "/sco/government/capability"], ["Compliance", "/sco/government/compliance"]].map(([l, h]) => <li key={l}><Link href={h}>{l}</Link></li>)}</ul></div>
           <div><h5>Careers</h5><ul>{[["Careers", "/sco/careers"], ["Open Positions", "/sco/careers/positions"], ["Apply", "/sco/careers/apply"], ["Applicant Login", "/sco/careers/dashboard"]].map(([l, h]) => <li key={l}><Link href={h}>{l}</Link></li>)}</ul></div>
           <div><h5>Resources</h5><ul>{[["Insights", "/sco/resources"], ["FAQs", "/sco/resources#faqs"]].map(([l, h]) => <li key={l}><Link href={h}>{l}</Link></li>)}</ul></div>
-          <div><h5>Contact</h5><ul>{[["Request Service", "/sco/request/service"], ["Request Proposal", "/sco/request/proposal"], ["General Contact", "/sco/contact"], ["Client Login", "/login"], ["Employee Access", "/login"], ["Mobile / QR", "/sco/qr"]].map(([l, h]) => <li key={l}><Link href={h}>{l}</Link></li>)}</ul></div>
+          <div><h5>Contact</h5><ul>{[["Request Service", "/sco/request/service"], ["Request Proposal", "/sco/request/proposal"], ["General Contact", "/sco/contact"], ["Client Portal", "/portal/login"], ["Field Team App", "/employee/login"], ["Staff Sign In", "/login"], ["SCOMS Platform", "/platform"], ["Mobile / QR", "/sco/qr"]].map(([l, h]) => <li key={l}><Link href={h}>{l}</Link></li>)}</ul></div>
         </div>
         <div className="ftr-base">
           <span>© {new Date().getFullYear()} Secure Cleaning Operations Inc.</span>
@@ -214,6 +212,93 @@ function Cursor() {
   return <div ref={el} className="cursor" aria-hidden="true" />;
 }
 
+/**
+ * Site-wide scroll motion, re-armed on every route:
+ *  - top progress bar
+ *  - every h1/h2 splits into masked lines that rise as they enter
+ *  - eyebrows, leads and buttons fade up; images/cards clip-reveal and drift (parallax)
+ * Everything is scrubbed or toggled by ScrollTrigger, so it reverses when scrolling back up.
+ */
+function ScrollFX() {
+  const pathname = usePathname();
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const { gsap: g, ScrollTrigger: st } = setupGsap();
+    const bar = document.querySelector<HTMLElement>(".sco-progress");
+    const ctx = g.context(() => {
+      if (bar) g.to(bar, { scaleX: 1, ease: "none", scrollTrigger: { start: 0, end: "max", scrub: 0.3 } });
+
+      // headings: split by words into masked rows (skip ones already choreographed)
+      document.querySelectorAll<HTMLElement>(".sco main h2:not(.fx-done), .sco main .page-h1:not(.fx-done)").forEach((h) => {
+        if (h.closest(".reel-copy, .dtl-copy, .pil-layer, .pc-final, .hx, .close") || h.hasAttribute("data-in") || h.querySelector(".ln,.rv-line")) return;
+        h.classList.add("fx-done");
+        const nodes = Array.from(h.childNodes);
+        h.innerHTML = "";
+        const words: HTMLElement[] = [];
+        nodes.forEach((n) => {
+          const em = n.nodeType === 1 && (n as HTMLElement).tagName === "EM";
+          const text = n.textContent || "";
+          text.split(/(\s+)/).forEach((w) => {
+            if (!w) return;
+            if (/^\s+$/.test(w)) { h.appendChild(document.createTextNode(" ")); return; }
+            const outer = document.createElement("span");
+            outer.className = "rv-line"; outer.style.display = "inline-block"; outer.style.verticalAlign = "top";
+            const inner = document.createElement("span");
+            if (em) inner.style.color = "var(--champ)";
+            inner.textContent = w; outer.appendChild(inner); h.appendChild(outer); words.push(inner);
+          });
+        });
+        g.fromTo(words, { yPercent: 115, rotate: 3 }, { yPercent: 0, rotate: 0, duration: 1.1, ease: "expo.out", stagger: 0.045,
+          scrollTrigger: { trigger: h, start: "top 88%", toggleActions: "play none none reverse" } });
+      });
+
+      g.utils.toArray<HTMLElement>(".sco main .eyebrow, .sco main .lead, .sco main .tlink").forEach((el) => {
+        if (el.closest(".hx, .reel-copy, .dtl-copy, .close, .pil-layer")) return;
+        g.fromTo(el, { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 1, ease: "power3.out", scrollTrigger: { trigger: el, start: "top 92%", toggleActions: "play none none reverse" } });
+      });
+
+      g.utils.toArray<HTMLElement>(".sco main .card, .sco main .gov-c, .sco main .ind-card, .sco main .img-reveal").forEach((el) => {
+        g.fromTo(el, { clipPath: "inset(14% 6% 0% 6%)", y: 50, autoAlpha: 0 }, { clipPath: "inset(0% 0% 0% 0%)", y: 0, autoAlpha: 1, duration: 1.3, ease: "expo.out",
+          scrollTrigger: { trigger: el, start: "top 90%", toggleActions: "play none none reverse" }, clearProps: "clipPath" });
+      });
+
+      // parallax drift on photography inside cards / reveal frames
+      g.utils.toArray<HTMLElement>(".sco main .card .env-media, .sco main .img-reveal img, .sco main .gov-c img").forEach((im) => {
+        g.fromTo(im, { yPercent: -7 }, { yPercent: 7, ease: "none", scrollTrigger: { trigger: im.parentElement, start: "top bottom", end: "bottom top", scrub: true } });
+      });
+    });
+    const t = window.setTimeout(() => st.refresh(), 400);
+    return () => { window.clearTimeout(t); ctx.revert(); };
+  }, [pathname]);
+  return <div className="sco-progress" aria-hidden="true" />;
+}
+
+/** Delegated 3D tilt + glare for cards/panels (fine pointers only). */
+function Tilt() {
+  useEffect(() => {
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const SEL = ".card, .svc-c, .ind-p, .gov-c, .mega-prev";
+    let cur: HTMLElement | null = null;
+    const reset = (el: HTMLElement) => { el.style.setProperty("--rx", "0deg"); el.style.setProperty("--ry", "0deg"); el.classList.remove("tilting"); };
+    const move = (e: MouseEvent) => {
+      const t = (e.target as HTMLElement | null)?.closest?.(SEL) as HTMLElement | null;
+      if (cur && cur !== t) reset(cur);
+      cur = t;
+      if (!t) return;
+      const r = t.getBoundingClientRect();
+      const px = (e.clientX - r.left) / r.width - 0.5, py = (e.clientY - r.top) / r.height - 0.5;
+      t.classList.add("tilting");
+      t.style.setProperty("--rx", `${(-py * 9).toFixed(2)}deg`);
+      t.style.setProperty("--ry", `${(px * 11).toFixed(2)}deg`);
+      t.style.setProperty("--gx", `${((px + 0.5) * 100).toFixed(1)}%`);
+      t.style.setProperty("--gy", `${((py + 0.5) * 100).toFixed(1)}%`);
+    };
+    window.addEventListener("mousemove", move, { passive: true });
+    return () => window.removeEventListener("mousemove", move);
+  }, []);
+  return null;
+}
+
 function Transitions({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
@@ -236,7 +321,8 @@ function Transitions({ children }: { children: React.ReactNode }) {
     const a = (e.target as HTMLElement).closest("a") as HTMLAnchorElement | null;
     if (!a || e.metaKey || e.ctrlKey || e.shiftKey || a.target === "_blank" || reduce()) return;
     const url = new URL(a.href, location.href);
-    if (url.origin !== location.origin || !url.pathname.startsWith("/sco") || url.pathname === location.pathname) return;
+    const site = (p: string) => p === "/" || p.startsWith("/sco");
+    if (url.origin !== location.origin || !site(url.pathname) || !site(location.pathname) || url.pathname === location.pathname) return;
     e.preventDefault();
     if (busy.current) return;
     busy.current = true;
@@ -254,17 +340,17 @@ function Transitions({ children }: { children: React.ReactNode }) {
 
 export default function Chrome({ children }: { children: React.ReactNode }) {
   const [searching, setSearching] = useState(false);
-  const [lang, setLang] = useState<"EN" | "ES">("EN");
-  useEffect(() => { document.documentElement.lang = lang === "EN" ? "en" : "es"; }, [lang]);
   const close = useCallback(() => setSearching(false), []);
   return (
     <Transitions>
       <a href="#main" className="skip">Skip to content</a>
-      <Header onSearch={() => setSearching(true)} lang={lang} setLang={setLang} />
+      <Header onSearch={() => setSearching(true)} />
       <SearchOverlay open={searching} onClose={close} />
       <main id="main">{children}</main>
       <Footer />
       <Cursor />
+      <Tilt />
+      <ScrollFX />
     </Transitions>
   );
 }

@@ -37,7 +37,9 @@ export function useScene<T extends HTMLElement = HTMLDivElement>(
     if (!root) return;
     const { gsap: g, ScrollTrigger: st } = setupGsap();
     const mm = g.matchMedia(root);
-    mm.add({ reduce: "(prefers-reduced-motion: reduce)", small: "(max-width: 760px)" }, (c) => {
+    // `always` guarantees the callback runs on every viewport; gsap.matchMedia otherwise only
+    // invokes it when at least one named condition matches (i.e. never on a normal desktop).
+    mm.add({ always: "(min-width: 1px)", reduce: "(prefers-reduced-motion: reduce)", small: "(max-width: 760px)" }, (c) => {
       const { reduce, small } = c.conditions as { reduce: boolean; small: boolean };
       return build({ gsap: g, ScrollTrigger: st, root, reduce: !!reduce, small: !!small });
     });

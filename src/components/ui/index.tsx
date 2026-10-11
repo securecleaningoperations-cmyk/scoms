@@ -2,6 +2,61 @@
 
 import React from "react";
 import clsx from "clsx";
+import Link from "next/link";
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Button — the single standardized button for the platform.
+//   <Button>Save</Button>
+//   <Button variant="secondary" size="sm" icon={<Plus />}>Add</Button>
+//   <Button href="/dashboard" variant="ghost">Back</Button>
+//   <Button loading>Saving…</Button>
+// Heights: sm 32px · md 38px · lg 44px (see globals.css "Button System").
+// ═══════════════════════════════════════════════════════════════════════════
+
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "success" | "link";
+export type ButtonSize = "sm" | "md" | "lg";
+
+type BaseProps = {
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  block?: boolean;
+  loading?: boolean;
+  icon?: React.ReactNode;
+  iconRight?: React.ReactNode;
+  /** Render a square icon-only button; pass an accessible `aria-label`. */
+  iconOnly?: boolean;
+  className?: string;
+  children?: React.ReactNode;
+};
+
+type AsButton = BaseProps & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "className" | "children"> & { href?: undefined };
+type AsLink = BaseProps & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "className" | "children" | "href"> & { href: string };
+
+export function buttonClass({ variant = "primary", size = "md", block, loading, iconOnly, className }: Pick<BaseProps, "variant" | "size" | "block" | "loading" | "iconOnly" | "className"> = {}) {
+  return clsx("btn", `btn-${variant}`, size !== "md" && `btn-${size}`, block && "btn-block", iconOnly && "btn-icon", loading && "is-loading", className);
+}
+
+export const Button = React.forwardRef<HTMLButtonElement & HTMLAnchorElement, AsButton | AsLink>(function Button(props, ref) {
+  const { variant, size, block, loading, icon, iconRight, iconOnly, className, children, ...rest } = props;
+  const cls = buttonClass({ variant, size, block, loading, iconOnly, className });
+  const content = (
+    <>
+      {icon}
+      {children}
+      {iconRight}
+    </>
+  );
+  if ("href" in rest && rest.href) {
+    const { href, ...a } = rest as AsLink;
+    return <Link ref={ref} href={href} className={cls} aria-busy={loading || undefined} {...a}>{content}</Link>;
+  }
+  const b = rest as Omit<AsButton, keyof BaseProps>;
+  return (
+    <button ref={ref} type={b.type ?? "button"} className={cls} aria-busy={loading || undefined} {...b} disabled={b.disabled || loading}>
+      {content}
+    </button>
+  );
+});
 
 // ═══════════════════════════════════════════════════════════════════════════
 // StatusBadge — Standardized status display across all modules

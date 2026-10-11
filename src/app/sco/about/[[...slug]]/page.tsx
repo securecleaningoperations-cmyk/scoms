@@ -20,7 +20,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
   if (!p || (slug && slug.length > 1)) notFound();
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "About", href: "/sco/about" }, ...(key ? [{ label: p.title }] : [])]} eyebrow="About" title={p.title} lead={p.lead} scene="office" />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "About", href: "/sco/about" }, ...(key ? [{ label: p.title }] : [])]} eyebrow="About" title={p.title} lead={p.lead} scene="office" />
       {p.body.length > 0 && <Reveal className="section" as="section"><div className="wrap two"><div><p className="eyebrow" data-in>Overview</p></div><div data-in style={{ display: "grid", gap: 22 }}>{p.body.map((b) => <p key={b} className="lead" style={{ maxWidth: "none", opacity: 1 }}>{b}</p>)}</div></div></Reveal>}
       {key === "standards" && (
         <Reveal className="section dark" as="section"><div className="wrap">{pillars.map((x, i) => (

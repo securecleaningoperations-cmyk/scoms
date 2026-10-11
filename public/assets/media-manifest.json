@@ -1,0 +1,194 @@
+{
+  "generated_with": "Higgsfield CLI 1.1.26",
+  "pipeline": "GPT Image 2.5 keyframe (16:9, 2k, medium) -> Kling 3.0 Turbo image-to-video (1080p, 5s) -> local ffmpeg ping-pong loop, H.264 faststart, audio removed",
+  "generated_at": "2026-10-10",
+  "credits_used_approx": 66,
+  "assets": [
+    {
+      "key": "hero",
+      "section": "Home \u00b7 opening hero",
+      "files": {
+        "video_1080": "/assets/video/hero.mp4",
+        "video_720": "/assets/video/hero-720.mp4",
+        "poster": "/assets/images/hero-poster.webp",
+        "poster_sm": "/assets/images/hero-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 2863433,
+        "video_720": 1119985
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 9.96
+      },
+      "source_trim_s": 5,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "cdbb1d0e-5206-4721-9caa-cd246efea523",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look. A grand modern corporate lobby at early evening: double-height space, polished pale terrazzo floor with long soft reflections, floor-to-ceiling glass facade with a blurred city dusk beyond, warm linear brass ceiling lights, a few low lounge chairs and one large olive tree planter. Far in the right third, small in frame, one professional cleaner in a navy polo and navy trousers with light-blue nitrile gloves guiding a tidy janitorial cart. Left half of the frame calm and uncluttered (negative space for headline). Cool teal-navy shadows, warm amber highlights, gentle haze, high dynamic range, crisp architectural lines, believable materials. No text, no logos, no signage, no watermarks."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "af43bc5d-cce6-49c2-92b9-70ffd3106227",
+        "status": "completed",
+        "prompt": "Very slow cinematic dolly-in and gentle drift to the right across the lobby. The cleaner in the background calmly pushes the janitorial cart a few steps forward. Reflections on the terrazzo floor shift subtly with parallax; warm ceiling lights steady; city dusk lights twinkle softly beyond the glass. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    },
+    {
+      "key": "team",
+      "section": "Home \u00b7 reel frame 1 (coordinated teams)",
+      "files": {
+        "video_1080": "/assets/video/team.mp4",
+        "video_720": "/assets/video/team-720.mp4",
+        "poster": "/assets/images/team-poster.webp",
+        "poster_sm": "/assets/images/team-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 2557356,
+        "video_720": 1071317
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 9.96
+      },
+      "source_trim_s": 5,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "2ecbaa63-9b34-4029-a060-e5bb1c7739a1",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look, shallow depth of field, cool teal-navy shadows with warm amber highlights, high dynamic range, believable materials and physically correct reflections. Staff wear plain navy polo shirts and navy trousers with light-blue nitrile gloves. No text, no logos, no signage, no watermarks, no brand marks. A modern open-plan corporate office after hours, warm pendant lights, city lights through tall windows. A coordinated professional cleaning team of three: in the foreground right one cleaner wipes a dark walnut conference table with a folded blue microfiber cloth; mid-ground a second cleaner vacuums carpet with an upright commercial vacuum; background a third restocks a tidy janitorial cart with a yellow mop bucket. Natural poses, correct hands, realistic equipment. Left third of frame quieter and darker for text overlay."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "0ef3cb4b-9637-494a-b480-97146ffa288f",
+        "status": "completed",
+        "prompt": "Slow lateral tracking shot left to right. The foreground cleaner draws the microfiber cloth across the table in smooth deliberate strokes; the mid-ground cleaner pushes the upright vacuum forward and back across the carpet; background cleaner places a supply item on the cart. Coordinated, unhurried, professional. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    },
+    {
+      "key": "floor",
+      "section": "Home \u00b7 reel frame 2 (floor care)",
+      "files": {
+        "video_1080": "/assets/video/floor.mp4",
+        "video_720": "/assets/video/floor-720.mp4",
+        "poster": "/assets/images/floor-poster.webp",
+        "poster_sm": "/assets/images/floor-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 5002751,
+        "video_720": 2130611
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 9.96
+      },
+      "source_trim_s": 5,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "2dc21a04-9bea-4ff5-aa71-4e2c6d715252",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look, shallow depth of field, cool teal-navy shadows with warm amber highlights, high dynamic range, believable materials and physically correct reflections. Staff wear plain navy polo shirts and navy trousers with light-blue nitrile gloves. No text, no logos, no signage, no watermarks, no brand marks. A large, bright modern building atrium concourse with polished stone floor. A professional operator in navy uniform walks behind a compact commercial walk-behind auto floor scrubber, moving left to right; behind the machine the floor is wet-glossy and mirror-reflective, ahead it is slightly duller. Low camera angle at floor level, long reflections of skylights, soft morning light."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "f5da6997-855d-44a0-9982-4923b5edbaab",
+        "status": "completed",
+        "prompt": "Low tracking shot at floor level moving left to right alongside the operator, who walks steadily behind the auto floor scrubber; the wet glossy freshly cleaned floor behind the machine reflects the skylights. Smooth, controlled, satisfying. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    },
+    {
+      "key": "facility",
+      "section": "Home \u00b7 reel frame 3 (large facilities)",
+      "files": {
+        "video_1080": "/assets/video/facility.mp4",
+        "video_720": "/assets/video/facility-720.mp4",
+        "poster": "/assets/images/facility-poster.webp",
+        "poster_sm": "/assets/images/facility-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 3356248,
+        "video_720": 1466563
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 9.96
+      },
+      "source_trim_s": 5,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "a5d31295-e791-45cc-9266-9e8a17ece03f",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look, shallow depth of field, cool teal-navy shadows with warm amber highlights, high dynamic range, believable materials and physically correct reflections. Staff wear plain navy polo shirts and navy trousers with light-blue nitrile gloves. No text, no logos, no signage, no watermarks, no brand marks. Wide symmetrical one-point-perspective view down a long, immaculate commercial office corridor at dawn: polished pale concrete floor with mirror-like reflections, glass meeting rooms on both sides, linear ceiling lights receding to a vanishing point, a single cleaner far away at the end of the corridor pushing a cart, tiny in frame. Quiet, orderly, architectural. Large calm areas in upper half."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "fa173ffc-f192-4967-b0cb-1d8084bd2581",
+        "status": "completed",
+        "prompt": "Smooth steady forward dolly down the center of the corridor, slow and floating like a gimbal shot. Reflections slide along the polished floor; the distant cleaner pushes the cart slowly. Lights remain steady. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    },
+    {
+      "key": "detail",
+      "section": "Home \u00b7 detail window reveal",
+      "files": {
+        "video_1080": "/assets/video/detail.mp4",
+        "video_720": "/assets/video/detail-720.mp4",
+        "poster": "/assets/images/detail-poster.webp",
+        "poster_sm": "/assets/images/detail-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 1525010,
+        "video_720": 618540
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 6.21
+      },
+      "source_trim_s": 3.1,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "2bacc6d6-87be-4b75-a283-f48d43c0204a",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look, shallow depth of field, cool teal-navy shadows with warm amber highlights, high dynamic range, believable materials and physically correct reflections. Staff wear plain navy polo shirts and navy trousers with light-blue nitrile gloves. No text, no logos, no signage, no watermarks, no brand marks. Extreme macro close-up at table height: a gloved hand in a light-blue nitrile glove draws a folded blue microfiber cloth across a glossy dark walnut desk surface, leaving a crisp clean streak-free band next to a slightly dusty matte area, soft window light raking across the surface revealing fine texture, a few fine water micro-droplets, a clear spray bottle softly out of focus behind. Calm, precise, tactile."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "1de9b124-d530-4258-8ac3-05890b7498b5",
+        "status": "completed",
+        "prompt": "Macro shot, very slow push-in. The gloved hand slowly and steadily draws the folded microfiber cloth across the walnut surface, extending the clean glossy band; raking light glints across the freshly cleaned area. Calm, tactile, precise. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    },
+    {
+      "key": "closing",
+      "section": "Home \u00b7 closing scene",
+      "files": {
+        "video_1080": "/assets/video/closing.mp4",
+        "video_720": "/assets/video/closing-720.mp4",
+        "poster": "/assets/images/closing-poster.webp",
+        "poster_sm": "/assets/images/closing-poster-sm.webp"
+      },
+      "bytes": {
+        "video_1080": 1717772,
+        "video_720": 717055
+      },
+      "video": {
+        "width": 1920,
+        "height": 1084,
+        "duration_s": 9.96
+      },
+      "source_trim_s": 5,
+      "keyframe": {
+        "model": "gpt_image_2_5",
+        "job_id": "f6b8e892-ea5d-4348-9144-487d5fa54b4e",
+        "prompt": "Photorealistic cinematic film still, 35mm anamorphic look, shallow depth of field, cool teal-navy shadows with warm amber highlights, high dynamic range, believable materials and physically correct reflections. Staff wear plain navy polo shirts and navy trousers with light-blue nitrile gloves. No text, no logos, no signage, no watermarks, no brand marks. An immaculate modern executive boardroom at blue-hour dusk, long dark walnut table perfectly clean with chairs neatly aligned, floor-to-ceiling windows with soft city lights, warm linear lighting, a single small orchid. No people. Serene, finished, presentation-ready. Generous negative space in the upper center of the frame."
+      },
+      "clip": {
+        "model": "kling3_0_turbo",
+        "job_id": "d345781d-ce8e-467d-b137-def8d4ba0ff1",
+        "status": "completed",
+        "prompt": "Very slow cinematic pull-back away from the boardroom table, perfectly still room, city lights gently twinkling outside as blue hour deepens, soft warm light glows on the clean table surface. Serene final shot. Photorealistic, stable architecture, natural human motion, correct hands, no morphing, no new objects appearing, no text, no logos."
+      }
+    }
+  ]
+}

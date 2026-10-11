@@ -22,7 +22,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
   if (!p || (slug && slug.length > 1)) notFound();
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Government & Procurement", href: "/sco/government" }, ...(key ? [{ label: p.title }] : [])]} eyebrow="Government & Procurement" title={p.title} lead={p.lead} scene="government" clean={0.85}
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Government & Procurement", href: "/sco/government" }, ...(key ? [{ label: p.title }] : [])]} eyebrow="Government & Procurement" title={p.title} lead={p.lead} scene="government" clean={0.85}
         cta={key === "capability" ? undefined : { href: "/sco/government/capability", label: "Request Capability Information" }} />
       {p.points.length > 0 && (
         <Reveal className="section" as="section"><div className="wrap two"><div><p className="eyebrow" data-in>Overview</p></div><ul className="cap-list" data-in style={{ gridTemplateColumns: "1fr" }}>{p.points.map((x) => <li key={x}>{x}</li>)}</ul></div></Reveal>

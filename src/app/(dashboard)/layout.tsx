@@ -1,7 +1,8 @@
 "use client";
 
 import { Sidebar } from "@/components/Sidebar";
-import { AuthProvider, useAuth } from "@/lib/auth/AuthProvider";
+import { AuthProvider, useAuth, usePermissions } from "@/lib/auth/AuthProvider";
+import { homeFor, workspaceFor } from "@/lib/auth/roles";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import {
@@ -462,12 +463,13 @@ function NotificationBell() {
 
 function UserMenu() {
   const { user, activeRole, setActiveRole, signOut, loginAsUser } = useAuth();
+  const perms = usePermissions();
   const [open, setOpen] = useState(false);
   const router = useRouter();
 
   const handleSignOut = async () => {
     await signOut();
-    router.push("/login");
+    router.push("/login?signedout=1");
   };
 
   const displayName = user?.firstName
@@ -553,22 +555,26 @@ function UserMenu() {
                 </div>
                 <span className="text-[10px] bg-blue-600 text-white px-2 py-0.5 rounded-full">Setup</span>
               </Link>
-              <Link
-                href="/dashboard/security"
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors font-medium"
-                onClick={() => setOpen(false)}
-              >
-                <Shield className="w-3.5 h-3.5 text-slate-500" />
-                <span>Security &amp; RBAC Control</span>
-              </Link>
-              <Link
-                href="/dashboard/security/audit"
-                className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors font-medium"
-                onClick={() => setOpen(false)}
-              >
-                <FileText className="w-3.5 h-3.5 text-slate-500" />
-                <span>Immutable Audit Logs</span>
-              </Link>
+              {perms.canManageSettings && (
+                <>
+                  <Link
+                    href="/dashboard/security"
+                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors font-medium"
+                    onClick={() => setOpen(false)}
+                  >
+                    <Shield className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Security &amp; RBAC Control</span>
+                  </Link>
+                  <Link
+                    href="/dashboard/security/audit"
+                    className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors font-medium"
+                    onClick={() => setOpen(false)}
+                  >
+                    <FileText className="w-3.5 h-3.5 text-slate-500" />
+                    <span>Immutable Audit Logs</span>
+                  </Link>
+                </>
+              )}
               <Link
                 href="/dashboard/phone-agent"
                 className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-slate-700 hover:bg-slate-100 transition-colors font-medium"
@@ -677,12 +683,14 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handler);
   }, []);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated; send client/field accounts to their own workspace
+  const { user: authUser } = useAuth();
+  const wrongWorkspace = !!authUser && workspaceFor(authUser.role) !== "corporate";
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      router.push("/login");
-    }
-  }, [isLoading, isAuthenticated, router]);
+    if (isLoading) return;
+    if (!isAuthenticated) router.replace(`/login?next=${encodeURIComponent(window.location.pathname)}`);
+    else if (wrongWorkspace && authUser) router.replace(homeFor(authUser.role));
+  }, [isLoading, isAuthenticated, wrongWorkspace, authUser, router]);
 
   if (isLoading) {
     return (
@@ -695,11 +703,11 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
     );
   }
 
-  if (!isAuthenticated) return null;
+  if (!isAuthenticated || wrongWorkspace) return null;
 
   return (
     <div className="flex h-screen overflow-hidden bg-transparent">
-      <div className="flex w-full h-full shadow-overlay overflow-hidden bg-surface/60 backdrop-blur-3xl border border-border">
+      <div className="flex w-full h-full overflow-hidden bg-white">
       {/* Desktop Sidebar */}
       <Sidebar />
 
@@ -709,7 +717,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
       {/* Main Content Area */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Top Header Bar */}
-        <header className="flex-shrink-0 h-14 bg-surface/90 backdrop-blur-md border-b border-border flex items-center justify-between px-4 gap-3 z-20 sticky top-0">
+        <header className="flex-shrink-0 h-14 bg-white border-b border-border flex items-center justify-between px-4 gap-3 z-20 sticky top-0">
           {/* Left */}
           <div className="flex items-center gap-2">
             <button

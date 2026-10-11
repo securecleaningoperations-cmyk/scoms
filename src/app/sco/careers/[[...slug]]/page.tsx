@@ -21,7 +21,7 @@ export default async function Page({ params }: { params: Promise<{ slug?: string
   const { slug } = await params;
   const key = slug?.[0] ?? "";
   if (slug && slug.length > 1) notFound();
-  const crumbs = [{ label: "Home", href: "/sco" }, { label: "Careers", href: "/sco/careers" }];
+  const crumbs = [{ label: "Home", href: "/" }, { label: "Careers", href: "/sco/careers" }];
 
   if (key === "apply") return (
     <>

@@ -1,5 +1,8 @@
 import { useId, type CSSProperties, type ReactNode } from "react";
 import type { SceneVariant } from "@/lib/sco/content";
+import { clips, scenePoster } from "@/lib/sco/media";
+
+const CROPS = ["50% 50%", "20% 60%", "80% 40%", "35% 30%", "65% 70%", "10% 50%", "90% 55%", "50% 20%"];
 
 /**
  * One-point-perspective commercial interior, drawn in SVG, with separate "grime" and "gloss"
@@ -62,9 +65,13 @@ export default function Environment({ variant = "office", className = "", style,
   const lampPolys = lamps(variant);
   const isConstruction = variant === "construction";
   const isIndustrial = variant === "industrial";
+  // Real footage stills by default; the SVG stays underneath as a loading fallback.
+  const hash = Array.from(uid).reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const real = media?.src ? media : { kind: "image" as const, src: clips[scenePoster[variant] ?? "team"].posterSm, alt: "" };
+  const crop = media?.src ? undefined : CROPS[hash % CROPS.length];
 
   return (
-    <div className={`env ${sweep ? "env--sweep" : ""} ${className}`} data-variant={variant} style={style} aria-hidden="true">
+    <div className={`env env--real ${sweep ? "env--sweep" : ""} ${className}`} data-variant={variant} style={style} aria-hidden="true">
       <svg className="env-svg" viewBox="0 0 160 90" preserveAspectRatio="xMidYMid slice">
         <defs>
           <linearGradient id={`sky${uid}`} x1="0" y1="0" x2="0" y2="1">
@@ -176,11 +183,11 @@ export default function Environment({ variant = "office", className = "", style,
         </g>
       </svg>
 
-      {media?.src && (media.kind === "image" ? (
+      {real.src && (real.kind === "image" ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img className="env-media" src={media.src} alt={media.alt ?? ""} loading="lazy" />
+        <img className="env-media" src={real.src} alt={real.alt ?? ""} loading="lazy" decoding="async" style={crop ? { objectPosition: crop } : undefined} />
       ) : (
-        <video className="env-media" src={media.src} poster={media.poster} muted loop playsInline autoPlay preload="metadata" />
+        <video className="env-media" src={real.src} poster={media?.poster} muted loop playsInline autoPlay preload="metadata" />
       ))}
 
       {/* GLOSS (appears as it is cleaned) */}

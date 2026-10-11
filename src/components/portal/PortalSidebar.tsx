@@ -9,6 +9,7 @@ import {
   LogOut, Building2, Menu, X, ArrowLeft, ShieldCheck 
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
+import { clearSession } from "@/lib/auth/service";
 
 const NAV = [
   { href: "/portal/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -27,7 +28,8 @@ export default function PortalSidebar({ clientName }: { clientName?: string }) {
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/portal/login";
+    clearSession();
+    window.location.href = "/portal/login?signedout=1";
   };
 
   return (

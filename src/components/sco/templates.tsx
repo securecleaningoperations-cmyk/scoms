@@ -5,6 +5,7 @@ import { useState } from "react";
 import Environment from "./Environment";
 import { useScene } from "./motion";
 import type { SceneVariant } from "@/lib/sco/content";
+import { clips, scenePoster } from "@/lib/sco/media";
 
 export function Crumbs({ items }: { items: { label: string; href?: string }[] }) {
   return (
@@ -26,7 +27,8 @@ export function PageHero({ crumbs, eyebrow, title, lead, scene = "office", cta, 
   });
   return (
     <section ref={ref} className="phero dark">
-      <Environment variant={scene} style={{ ["--clean" as string]: clean }} />
+      <Environment variant={scene} style={{ ["--clean" as string]: 1, ["--gloss" as string]: 0, ["--_c" as string]: clean }}
+        media={{ kind: "image", src: clips[scenePoster[scene] ?? "team"].poster, alt: "" }} />
       <div className="shade" /><div className="vignette" />
       <div className="wrap">
         <div data-in><Crumbs items={crumbs} /></div>

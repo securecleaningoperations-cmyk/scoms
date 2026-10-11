@@ -8,7 +8,7 @@ export const metadata = { title: "Services" };
 export default function Services() {
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Services" }]} eyebrow="Services" title={<>Thirteen service lines. <em>One standard.</em></>} lead="From daily commercial care to post-construction transformation — each service shares the same people, process and accountability." scene="office" />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Services" }]} eyebrow="Services" title={<>Thirteen service lines. <em>One standard.</em></>} lead="From daily commercial care to post-construction transformation — each service shares the same people, process and accountability." scene="office" />
       <Reveal className="section" as="section">
         <div className="wrap card-grid">
           {services.map((s) => (

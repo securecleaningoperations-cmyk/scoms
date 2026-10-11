@@ -15,7 +15,7 @@ const faqs = [
 export default function Page() {
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Resources" }]} eyebrow="Resources" title={<>Guides, insights &amp; <em>answers.</em></>} lead="Planning aids for facility and procurement teams." scene="hospitality" />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Resources" }]} eyebrow="Resources" title={<>Guides, insights &amp; <em>answers.</em></>} lead="Planning aids for facility and procurement teams." scene="hospitality" />
       <Reveal className="section" as="section"><div className="wrap">
         <div className="card-grid">{resources.map((r, i) => <a key={r.slug} href={`#${r.slug}`} className="card" data-in data-cursor="Open"><Environment variant={(["office", "healthcare", "government", "hospitality"] as const)[i]} style={{ ["--clean" as string]: 0.9 }} /><div className="shade" /><div className="card-b"><h3>{r.title}</h3><p>{r.line}</p></div></a>)}</div>
       </div></Reveal>

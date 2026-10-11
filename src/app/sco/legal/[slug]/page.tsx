@@ -9,7 +9,7 @@ export default async function Page({ params }: { params: Promise<{ slug: string 
   const t = docs[slug]; if (!t) notFound();
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: t }]} eyebrow="Legal" title={t} lead="Final legal copy is supplied by Secure Cleaning Operations Inc. before launch." scene="office" clean={0.7} />
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: t }]} eyebrow="Legal" title={t} lead="Final legal copy is supplied by Secure Cleaning Operations Inc. before launch." scene="office" clean={0.7} />
       <Reveal className="section" as="section"><div className="wrap"><p className="lead" data-in>{slug === "accessibility" ? "We aim for keyboard, screen-reader and reduced-motion support throughout the site. To report a barrier, use the Contact page." : "Placeholder — replace with approved policy text."}</p></div></Reveal>
     </>
   );

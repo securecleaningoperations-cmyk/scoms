@@ -1,338 +1,165 @@
 "use client";
 
-import React, { useState, useEffect, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import {
-  Shield, Building2, Mail, Lock, User, KeyRound,
-  ArrowRight, CheckCircle2, AlertCircle, ChevronRight, Hash
-} from "lucide-react";
-import { useAuth, type UserProfile, type ScomsRole } from "@/lib/auth/AuthProvider";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Building2, Eye, EyeOff, Hash, Lock, Mail, User } from "lucide-react";
+import AuthShell, { Alert, Field, StrengthMeter } from "@/components/auth/AuthShell";
+import { Button } from "@/components/ui";
+import { useAuth, type ScomsRole } from "@/lib/auth/AuthProvider";
+import { signUp } from "@/lib/auth/service";
+import { EMAIL_RE, PRIVILEGED_ROLES, ROLE_LABELS, SELF_SIGNUP_ROLES, homeFor, normalizeRole, passwordIssues, passwordStrength } from "@/lib/auth/roles";
 
-function SignUpContent() {
+type Errors = Partial<Record<"name" | "email" | "org" | "pw" | "confirm" | "terms", string>>;
+
+function SignUpForm() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const params = useSearchParams();
   const { loginAsUser } = useAuth();
 
-  const [orgCode, setOrgCode] = useState("ORG-SCOMS-7749");
+  const [orgCode, setOrgCode] = useState("");
   const [orgName, setOrgName] = useState("Secure Cleaning Operations Inc.");
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<ScomsRole>("operations_manager");
+  const [pw, setPw] = useState("");
+  const [confirm, setConfirm] = useState("");
+  const [show, setShow] = useState(false);
+  const [role, setRole] = useState<ScomsRole>("field_employee");
+  const [invitedRole, setInvitedRole] = useState<ScomsRole | null>(null);
+  const [terms, setTerms] = useState(false);
+  const [errors, setErrors] = useState<Errors>({});
+  const [formError, setFormError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [confirmSent, setConfirmSent] = useState<string | null>(null);
 
-  // Pre-fill from invite URL params if available
+  // invite links: /signup?org=ORG-…&role=…&email=…&name=…
   useEffect(() => {
-    if (!searchParams) return;
-    const org = searchParams.get("org");
-    const roleParam = searchParams.get("role");
-    const emailParam = searchParams.get("email");
-    const nameParam = searchParams.get("name");
+    const org = params.get("org"); const r = params.get("role"); const e = params.get("email"); const n = params.get("name");
+    if (org) setOrgCode(org.toUpperCase());
+    if (e) setEmail(e);
+    if (n) setFullName(n);
+    if (r) { const nr = normalizeRole(r, "field_employee"); setRole(nr); setInvitedRole(nr); }
+  }, [params]);
 
-    if (org) setOrgCode(org);
-    if (roleParam) setRole(roleParam as ScomsRole);
-    if (emailParam) setEmail(emailParam);
-    if (nameParam) setFullName(nameParam);
-  }, [searchParams]);
+  const strength = useMemo(() => passwordStrength(pw), [pw]);
+  const roleOptions = invitedRole && PRIVILEGED_ROLES.includes(invitedRole) ? [invitedRole] : SELF_SIGNUP_ROLES;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters long.");
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError("Passwords do not match. Please verify.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const parts = fullName.trim().split(" ");
-      const firstName = parts[0] || "User";
-      const lastName = parts.slice(1).join(" ") || "";
-      const employeeId = `EMP-${Math.floor(1000 + Math.random() * 9000)}`;
-
-      const newProfile: UserProfile = {
-        id: `usr-${Date.now()}`,
-        email: email.trim().toLowerCase(),
-        firstName,
-        lastName,
-        role,
-        employeeId,
-        username: `@${firstName.toLowerCase()}.${lastName ? lastName[0].toLowerCase() : "user"}`,
-        department: role === "super_admin" ? "Executive Platform Ownership" : "Operations Management",
-        organizationName: orgName,
-        organizationCode: orgCode
-      };
-
-      // Store in registered users store
-      if (typeof window !== "undefined") {
-        try {
-          const raw = localStorage.getItem("scoms_registered_users");
-          const existing = raw ? JSON.parse(raw) : [];
-          const updated = [...existing.filter((u: any) => u.email !== newProfile.email), {
-            ...newProfile,
-            password
-          }];
-          localStorage.setItem("scoms_registered_users", JSON.stringify(updated));
-        } catch {}
-      }
-
-      setSuccess(true);
-
-      setTimeout(() => {
-        loginAsUser(newProfile);
-        if (role === "client_admin" || role === "client_user") {
-          router.push("/portal/dashboard");
-        } else if (role === "field_employee") {
-          router.push("/employee/dashboard");
-        } else {
-          router.push("/dashboard");
-        }
-      }, 1000);
-
-    } catch (err: any) {
-      setError(err?.message || "Failed to create account. Please try again.");
-      setLoading(false);
-    }
+  const validate = (): Errors => {
+    const e: Errors = {};
+    if (fullName.trim().split(/\s+/).length < 2) e.name = "Enter your first and last name.";
+    if (!EMAIL_RE.test(email.trim())) e.email = "Enter a valid work email address.";
+    if (!/^ORG-[A-Z0-9-]{3,}$/.test(orgCode.trim())) e.org = "Use the code from your administrator, e.g. ORG-XXXX-0000.";
+    const issues = passwordIssues(pw);
+    if (issues.length) e.pw = `Use ${issues.join(", ")}.`;
+    if (confirm !== pw) e.confirm = "Passwords don't match.";
+    if (!terms) e.terms = "Please accept the terms to continue.";
+    return e;
   };
 
+  const submit = async (ev: React.FormEvent) => {
+    ev.preventDefault();
+    setFormError(null);
+    const e = validate();
+    setErrors(e);
+    if (Object.keys(e).length) return;
+    setLoading(true);
+    const res = await signUp({ fullName, email, password: pw, role, orgCode, orgName });
+    setLoading(false);
+    if (!res.ok) { setFormError(res.error); return; }
+    if (res.needsConfirmation) { setConfirmSent(email.trim()); return; }
+    loginAsUser(res.profile, true);
+    router.replace(homeFor(res.profile.role));
+  };
+
+  if (confirmSent) {
+    return (
+      <div className="space-y-5">
+        <Alert tone="success">We sent a confirmation link to <b>{confirmSent}</b>. Open it to activate your account, then sign in.</Alert>
+        <Button href="/login" size="lg" block>Go to sign in</Button>
+        <p className="text-[12px] text-slate-500">Didn&apos;t get it? Check spam, or wait a minute and try registering again.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full max-w-md space-y-6">
-      
-      {/* Title */}
-      <div className="text-center space-y-1.5">
-        <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">Create Organization Account</h1>
-        <p className="text-sm text-slate-600">Join your team&apos;s workspace with an assigned Organization ID</p>
+    <form onSubmit={submit} noValidate className="space-y-5">
+      {formError && <Alert>{formError}</Alert>}
+      {invitedRole && <Alert tone="info">You&apos;re joining by invitation as <b>{ROLE_LABELS[invitedRole]}</b>.</Alert>}
+
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_1.2fr]">
+        <Field label="Organization code" htmlFor="su-org" error={errors.org}>
+          <div className="relative">
+            <Hash className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input id="su-org" className="auth-input has-icon font-mono uppercase" placeholder="ORG-XXXX-0000" value={orgCode}
+              onChange={(e) => setOrgCode(e.target.value.toUpperCase())} aria-invalid={!!errors.org} readOnly={!!params.get("org")} />
+          </div>
+        </Field>
+        <Field label="Organization name" htmlFor="su-orgname">
+          <div className="relative">
+            <Building2 className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input id="su-orgname" className="auth-input has-icon" value={orgName} onChange={(e) => setOrgName(e.target.value)} autoComplete="organization" />
+          </div>
+        </Field>
       </div>
 
-      {/* Main Card */}
-      <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden shadow-xl">
-        
-        {/* Header Strip */}
-        <div className="bg-blue-50/80 border-b border-blue-100 p-5 flex items-center justify-between">
-          <div className="space-y-0.5">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-100 px-2 py-0.5 rounded-full border border-blue-200">
-              Workspace Access
-            </span>
-            <h2 className="text-base font-extrabold text-blue-950">Enterprise Registration</h2>
-          </div>
-          <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center shadow-xs">
-            <Shield className="w-5 h-5" />
-          </div>
+      <Field label="Full name" htmlFor="su-name" error={errors.name}>
+        <div className="relative">
+          <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input id="su-name" className="auth-input has-icon" placeholder="First and last name" value={fullName} onChange={(e) => setFullName(e.target.value)} autoComplete="name" aria-invalid={!!errors.name} />
         </div>
+      </Field>
 
-        {/* Form */}
-        <div className="p-6 space-y-4">
-          
-          {error && (
-            <div className="p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-rose-600" />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {success && (
-            <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-xs text-emerald-800 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
-              <span>Account registered successfully! Redirecting to workspace...</span>
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-3.5">
-            
-            {/* Organization ID & Name Strip */}
-            <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-bold text-slate-700 flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-blue-600" />
-                  Organization Code
-                </span>
-                <span className="text-[10px] text-slate-500">Provided by admin</span>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="relative">
-                  <Hash className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-1/2 -translate-y-1/2" />
-                  <input
-                    required
-                    type="text"
-                    value={orgCode}
-                    onChange={e => setOrgCode(e.target.value.toUpperCase())}
-                    placeholder="ORG-SCOMS-7749"
-                    className="w-full pl-8 pr-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-mono font-bold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500 uppercase"
-                  />
-                </div>
-                <input
-                  required
-                  type="text"
-                  value={orgName}
-                  onChange={e => setOrgName(e.target.value)}
-                  placeholder="Organization Name"
-                  className="w-full px-2.5 py-1.5 bg-white border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 focus:outline-none focus:ring-1 focus:ring-blue-500"
-                />
-              </div>
-            </div>
-
-            {/* Full Name */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Full Name
-              </label>
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. David Vance"
-                  value={fullName}
-                  onChange={e => setFullName(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            {/* Work Email */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Work Email Address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  required
-                  type="email"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  className="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                />
-              </div>
-            </div>
-
-            {/* Role Selection */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                Account Role Tier
-              </label>
-              <select
-                value={role}
-                onChange={e => setRole(e.target.value as ScomsRole)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 font-semibold focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-              >
-                <option value="super_admin">Executive Super Admin</option>
-                <option value="operations_manager">Operations Manager</option>
-                <option value="supervisor">Field Supervisor</option>
-                <option value="quality_manager">Quality & Compliance Officer</option>
-                <option value="field_employee">Field Cleaning Technician</option>
-                <option value="client_admin">Client Facility Admin</option>
-              </select>
-            </div>
-
-            {/* Password */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Password
-                </label>
-                <div className="relative">
-                  <KeyRound className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    required
-                    type="password"
-                    placeholder="At least 6 chars"
-                    value={password}
-                    onChange={e => setPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                  Confirm Password
-                </label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                  <input
-                    required
-                    type="password"
-                    placeholder="Repeat password"
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs sm:text-sm text-slate-900 focus:bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={loading || success}
-              className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-sm font-bold transition flex items-center justify-center gap-2 shadow-md shadow-blue-600/20 disabled:opacity-50 mt-2"
-            >
-              {loading ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : (
-                <>
-                  <span>Create Account & Join Workspace</span>
-                  <ArrowRight className="w-4 h-4 ml-1" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Back to sign in */}
-          <div className="pt-3 border-t border-slate-200 text-center">
-            <p className="text-xs text-slate-600">
-              Already have an account?{" "}
-              <Link href="/login" className="font-bold text-blue-600 hover:text-blue-700 hover:underline">
-                Sign In to Workspace
-              </Link>
-            </p>
-          </div>
+      <Field label="Work email" htmlFor="su-email" error={errors.email}>
+        <div className="relative">
+          <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input id="su-email" type="email" className="auth-input has-icon" placeholder="name@company.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" aria-invalid={!!errors.email} />
         </div>
+      </Field>
+
+      <Field label="Role" htmlFor="su-role" hint={invitedRole && PRIVILEGED_ROLES.includes(invitedRole) ? "Set by your invitation." : "Administrative and finance roles are assigned by invitation only."}>
+        <select id="su-role" className="auth-input" value={role} onChange={(e) => setRole(e.target.value as ScomsRole)} disabled={roleOptions.length === 1}>
+          {roleOptions.map((r) => <option key={r} value={r}>{ROLE_LABELS[r]}</option>)}
+        </select>
+      </Field>
+
+      <Field label="Password" htmlFor="su-pw" error={errors.pw}>
+        <div className="relative">
+          <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+          <input id="su-pw" type={show ? "text" : "password"} className="auth-input has-icon has-trail" placeholder="At least 8 characters, with a number" value={pw} onChange={(e) => setPw(e.target.value)} autoComplete="new-password" aria-invalid={!!errors.pw} />
+          <button type="button" onClick={() => setShow(!show)} aria-label={show ? "Hide password" : "Show password"} className="absolute right-1.5 top-1/2 grid h-9 w-9 -translate-y-1/2 place-items-center rounded-md text-slate-500 hover:bg-slate-100">
+            {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+          </button>
+        </div>
+        {pw && !errors.pw && <StrengthMeter score={strength} />}
+      </Field>
+
+      <Field label="Confirm password" htmlFor="su-confirm" error={errors.confirm}>
+        <input id="su-confirm" type={show ? "text" : "password"} className="auth-input" placeholder="Repeat password" value={confirm} onChange={(e) => setConfirm(e.target.value)} autoComplete="new-password" aria-invalid={!!errors.confirm} />
+      </Field>
+
+      <div>
+        <label className="flex items-start gap-2.5 text-[13px] leading-snug text-slate-700">
+          <input type="checkbox" checked={terms} onChange={(e) => setTerms(e.target.checked)} className="mt-0.5 h-4 w-4 rounded border-slate-300 accent-blue-600" aria-invalid={!!errors.terms} />
+          <span>I agree to the <Link href="/sco/legal/terms" className="font-semibold text-blue-600 hover:underline">Terms</Link> and <Link href="/sco/legal/privacy" className="font-semibold text-blue-600 hover:underline">Privacy Policy</Link>.</span>
+        </label>
+        {errors.terms && <p className="auth-err" role="alert">{errors.terms}</p>}
       </div>
-    </div>
+
+      <Button type="submit" size="lg" block loading={loading}>Create account</Button>
+    </form>
   );
 }
 
 export default function SignUpPage() {
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col font-sans selection:bg-blue-600 selection:text-white relative">
-      {/* Top Nav */}
-      <header className="relative z-10 w-full px-5 sm:px-8 py-5 flex items-center justify-between border-b border-slate-200 bg-white">
-        <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shadow-md shadow-blue-600/20 group-hover:scale-105 transition-transform">
-            <Shield className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-extrabold text-base text-slate-900 tracking-tight">SCOMS</span>
-              <span className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded font-bold uppercase">v4.0</span>
-            </div>
-            <p className="text-[11px] text-slate-500 font-medium">Secure Cleaning Operations Inc.</p>
-          </div>
-        </Link>
-        <Link href="/login" className="text-xs text-slate-600 hover:text-blue-600 transition flex items-center gap-1 font-semibold">
-          <span>Already registered? Sign In</span>
-          <ChevronRight className="w-3.5 h-3.5" />
-        </Link>
-      </header>
-
-      {/* Main */}
-      <main className="relative z-10 flex-1 flex items-center justify-center px-4 py-12">
-        <Suspense fallback={<div className="text-sm text-slate-500">Loading sign-up form...</div>}>
-          <SignUpContent />
-        </Suspense>
-      </main>
-    </div>
+    <AuthShell
+      title="Create your account"
+      subtitle="Join your organization's SCOMS workspace using the code from your administrator or an invitation link."
+      clip="facility"
+      panelTitle={<>Every site.<br />Every shift.<br />One standard.</>}
+      footer={<p>Already have an account? <Link href="/login" className="font-semibold text-blue-600 hover:text-blue-700">Sign in</Link></p>}
+    >
+      <Suspense fallback={<div className="h-96" />}><SignUpForm /></Suspense>
+    </AuthShell>
   );
 }

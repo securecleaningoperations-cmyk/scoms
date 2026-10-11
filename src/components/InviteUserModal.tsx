@@ -118,7 +118,16 @@ export function InviteUserModal({
     const origin = typeof window !== "undefined" ? window.location.origin : "https://scoms-mu.vercel.app";
     const generatedLink = `${origin}/signup?org=${encodeURIComponent(orgCode)}&role=${encodeURIComponent(role)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
 
-    setTimeout(() => {
+    (async () => {
+      let emailed = false, errMsg: string | null = null;
+      try {
+        const r = await fetch("/api/invite", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ to: email.trim(), name: name.trim(), role: role.replace(/_/g, " "), orgName, orgCode, facility, note: notes, link: generatedLink, invitedBy: user?.firstName ? `${user.firstName} ${user.lastName || ""}`.trim() : "" }),
+        });
+        const j = await r.json();
+        emailed = !!j.emailed; if (!r.ok) errMsg = j.error || "Email could not be sent.";
+      } catch { errMsg = "Network error sending email."; }
       const newInv: OrgInvitation = {
         id: `inv-${Date.now()}`,
         name: name.trim(),
@@ -139,11 +148,13 @@ export function InviteUserModal({
       } catch {}
 
       setLastInviteLink(generatedLink);
-      setSuccessMsg(`Official invitation email sent to ${email.trim()} with organization code ${orgCode}`);
+      setSuccessMsg(emailed
+        ? `Invitation email sent to ${email.trim()} with organization code ${orgCode}`
+        : `Invite created for ${email.trim()}${errMsg ? ` (${errMsg})` : " — email provider not configured"}. Copy the link below to share it.`);
       setName("");
       setEmail("");
       setSending(false);
-    }, 700);
+    })();
   };
 
   const handleRevoke = (id: string) => {

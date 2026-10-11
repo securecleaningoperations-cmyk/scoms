@@ -371,7 +371,7 @@ function MeetingsComponent() {
         await supabase.from('communications').insert([{
           title: newMeeting.title,
           scheduled_at: newMeeting.scheduled_at,
-          zoom_join_url: newMeeting.meet_url,
+          meet_url: newMeeting.meet_url,
           type: 'meeting',
           notes: newMeeting.purpose
         }]);

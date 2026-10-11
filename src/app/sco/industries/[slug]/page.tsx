@@ -17,7 +17,7 @@ export default async function IndustryPage({ params }: { params: Promise<{ slug:
   const svcs = ind.services.map((s) => services.find((x) => x.slug === s)!).filter(Boolean);
   return (
     <>
-      <PageHero crumbs={[{ label: "Home", href: "/sco" }, { label: "Industries", href: "/sco/industries" }, { label: ind.title }]} eyebrow="Industry" title={<>{ind.title} <em>solutions.</em></>} lead={ind.line} scene={ind.scene}
+      <PageHero crumbs={[{ label: "Home", href: "/" }, { label: "Industries", href: "/sco/industries" }, { label: ind.title }]} eyebrow="Industry" title={<>{ind.title} <em>solutions.</em></>} lead={ind.line} scene={ind.scene}
         cta={{ href: `/sco/request/consultation?industry=${ind.slug}`, label: `Explore ${ind.title} Solutions` }} />
       <Reveal className="section" as="section">
         <div className="wrap">
